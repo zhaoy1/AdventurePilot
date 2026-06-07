@@ -30,6 +30,8 @@ class CarInterface(CarInterfaceBase):
     ret.radarUnavailable = True
 
     # TODO: pending finding/handling missing set speed
+    # yubozhao: set longitude available as true anyway
+    # ret.alphaLongitudinalAvailable = False
     ret.alphaLongitudinalAvailable = False
     if alpha_long:
       ret.openpilotLongitudinalControl = True
@@ -46,11 +48,21 @@ class CarInterface(CarInterfaceBase):
   @staticmethod
   def _get_params_sp(stock_cp: structs.CarParams, ret: structs.CarParamsSP, candidate, fingerprint: dict[int, dict[int, int]],
                      car_fw: list[structs.CarParams.CarFw], alpha_long: bool, is_release_sp: bool, docs: bool) -> structs.CarParamsSP:
+
+    """
     if 0x131a in fingerprint[1]:
       ret.flags |= RivianFlagsSP.LONGITUDINAL_HARNESS_UPGRADE.value
       stock_cp.radarUnavailable = False
       stock_cp.enableBsm = True
       stock_cp.alphaLongitudinalAvailable = True
+    """
+
+    # yubozhao: pretend there is longitude harness
+    ret.flags |= RivianFlagsSP.LONGITUDINAL_HARNESS_UPGRADE.value
+    stock_cp.radarUnavailable = True
+    stock_cp.enableBsm = False
+    stock_cp.alphaLongitudinalAvailable = True
+
 
     if alpha_long and stock_cp.alphaLongitudinalAvailable:
       stock_cp.openpilotLongitudinalControl = True
