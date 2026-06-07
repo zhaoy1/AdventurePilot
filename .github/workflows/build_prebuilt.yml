@@ -37,6 +37,10 @@ jobs:
 
       - name: Build in Docker (aarch64)
         run: |
+          # Create output directory with proper permissions
+          mkdir -p ${{ github.workspace }}/output
+          chmod 777 ${{ github.workspace }}/output
+
           # Build the project inside an aarch64 container
           docker buildx build \
             --platform linux/arm64 \
@@ -58,18 +62,19 @@ jobs:
               find . -name '*.pyc' -delete && \
               find . -name 'moc_*' -delete && \
               find . -name '__pycache__' -delete && \
-              rm -rf .sconsign.dblite Jenkinsfile release/ && \
+              rm -rf .git .sconsign.dblite Jenkinsfile release/ && \
               rm -f selfdrive/modeld/models/*.onnx && \
               rm -f sunnypilot/modeld*/models/*.onnx && \
               find third_party/ -name '*x86*' -exec rm -r {} + || true && \
               find third_party/ -name '*Darwin*' -exec rm -r {} + || true && \
               touch prebuilt && \
-              cp -r . /output/
+              cp -r . /output/ && \
+              chmod -R 777 /output
             "
 
       - name: Push prebuilt branch
         run: |
-          cd output
+          cd ${{ github.workspace }}/output
 
           # Get version info
           VERSION=$(awk -F\" '{print $2}' sunnypilot/common/version.h)
