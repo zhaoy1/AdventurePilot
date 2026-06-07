@@ -1,0 +1,2 @@
+[console_scripts]
+zensical=zensical.main:cli
