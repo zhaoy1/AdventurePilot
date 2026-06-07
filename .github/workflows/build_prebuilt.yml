@@ -76,8 +76,18 @@ jobs:
             "
 
       - name: Push prebuilt branch
+        env:
+          GIT_LFS_SKIP_PUSH: "1"
         run: |
           cd ${{ github.workspace }}/output
+
+          # Disable LFS - prebuilt branch stores all files directly (no LFS)
+          rm -f .lfsconfig .lfsconfig-comma
+          # Remove LFS tracking from .gitattributes (keep only text=auto)
+          if [ -f .gitattributes ]; then
+            grep -v "filter=lfs" .gitattributes > .gitattributes.tmp || true
+            mv .gitattributes.tmp .gitattributes
+          fi
 
           # Get version info
           VERSION=$(awk -F\" '{print $2}' sunnypilot/common/version.h)
@@ -86,8 +96,12 @@ jobs:
 
           # Set up git
           git init
+          git lfs install --skip-smudge || true
+          git lfs uninstall || true
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
+          git config lfs.url ""
+          git config lfs.pushurl ""
 
           # Set up remote with token
           git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
@@ -102,7 +116,8 @@ jobs:
           source branch: ${{ env.BUILD_BRANCH }}
           "
 
-          git push -f origin ${{ env.PREBUILT_BRANCH }}
+          # Push without LFS
+          GIT_LFS_SKIP_PUSH=1 git push -f origin ${{ env.PREBUILT_BRANCH }}
 
           echo "✅ Prebuilt branch pushed: ${{ env.PREBUILT_BRANCH }}"
           echo "📱 Install URL: https://installer.comma.ai/${{ github.repository_owner }}/${{ github.event.repository.name }}/${{ env.PREBUILT_BRANCH }}"
