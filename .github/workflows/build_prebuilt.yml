@@ -15,6 +15,9 @@ env:
   BUILD_BRANCH: mads-resume-longitude-enabled
   PREBUILT_BRANCH: mads-resume-longitude-enabled-prebuilt
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
