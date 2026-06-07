@@ -65,9 +65,10 @@ jobs:
               find . -name '*.pyc' -delete && \
               find . -name 'moc_*' -delete && \
               find . -name '__pycache__' -delete && \
-              rm -rf .git .sconsign.dblite Jenkinsfile release/ && \
+              rm -rf .git .venv .sconsign.dblite Jenkinsfile release/ && \
               rm -f selfdrive/modeld/models/*.onnx && \
               rm -f sunnypilot/modeld*/models/*.onnx && \
+              rm -f .lfsconfig .lfsconfig-comma .gitattributes && \
               find third_party/ -name '*x86*' -exec rm -r {} + || true && \
               find third_party/ -name '*Darwin*' -exec rm -r {} + || true && \
               touch prebuilt && \
@@ -83,25 +84,39 @@ jobs:
 
           # Disable LFS - prebuilt branch stores all files directly (no LFS)
           rm -f .lfsconfig .lfsconfig-comma
-          # Remove LFS tracking from .gitattributes (keep only text=auto)
-          if [ -f .gitattributes ]; then
-            grep -v "filter=lfs" .gitattributes > .gitattributes.tmp || true
-            mv .gitattributes.tmp .gitattributes
-          fi
+          # Remove .gitattributes entirely to prevent any LFS association
+          rm -f .gitattributes
+
+          # Find and remove any LFS pointer files (they start with "version https://git-lfs")
+          echo "Checking for LFS pointer files..."
+          find . -type f -size -200c | while read f; do
+            if head -1 "$f" 2>/dev/null | grep -q "^version https://git-lfs"; then
+              echo "Removing LFS pointer: $f"
+              rm -f "$f"
+            fi
+          done
+
+          # Remove any files larger than 100MB (GitHub's hard limit)
+          find . -type f -size +100M -exec rm -f {} \;
+          # List files larger than 50MB for awareness
+          echo "Files larger than 50MB:"
+          find . -type f -size +50M -exec ls -lh {} \;
 
           # Get version info
           VERSION=$(awk -F\" '{print $2}' sunnypilot/common/version.h)
           GIT_HASH=${{ github.sha }}
           DATETIME=$(date '+%Y-%m-%dT%H:%M:%S')
 
-          # Set up git
+          # Completely remove git-lfs from the system to prevent any LFS interaction
+          sudo apt-get remove -y git-lfs || true
+          sudo rm -f /usr/bin/git-lfs /usr/local/bin/git-lfs
+          rm -f ~/.gitconfig
+
+          # Set up git - completely fresh, no LFS
           git init
-          git lfs install --skip-smudge || true
-          git lfs uninstall || true
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git config lfs.url ""
-          git config lfs.pushurl ""
+          git config http.version HTTP/1.1
 
           # Set up remote with token
           git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
@@ -116,8 +131,8 @@ jobs:
           source branch: ${{ env.BUILD_BRANCH }}
           "
 
-          # Push without LFS
-          GIT_LFS_SKIP_PUSH=1 git push -f origin ${{ env.PREBUILT_BRANCH }}
+          # Push without any LFS
+          git push -f origin ${{ env.PREBUILT_BRANCH }}
 
           echo "✅ Prebuilt branch pushed: ${{ env.PREBUILT_BRANCH }}"
           echo "📱 Install URL: https://installer.comma.ai/${{ github.repository_owner }}/${{ github.event.repository.name }}/${{ env.PREBUILT_BRANCH }}"
