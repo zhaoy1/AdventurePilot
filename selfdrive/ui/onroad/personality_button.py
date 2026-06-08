@@ -20,7 +20,6 @@ class PersonalityButton(Widget):
     self._params = Params()
     self._personality: int = self._params.get("LongitudinalPersonality", return_default=True)
     self._rect = rl.Rectangle(0, 0, button_size, button_size)
-    self._bg_color = rl.Color(0, 0, 0, 0)
     self._font = gui_app.font(FontWeight.BOLD)
     self._font_size = 44
 
@@ -42,12 +41,13 @@ class PersonalityButton(Widget):
     center_x = int(self._rect.x + self._rect.width // 2)
     center_y = int(self._rect.y + self._rect.height // 2)
 
-    rl.draw_circle(center_x, center_y, self._rect.width / 2, self._bg_color)
-
     label = PERSONALITY_LABELS.get(self._personality, "STD")
     color = PERSONALITY_COLORS.get(self._personality, rl.WHITE)
     if self.is_pressed:
       color = rl.Color(color.r, color.g, color.b, 180)
+
+    circle_radius = self._rect.width / 2 - 10
+    rl.draw_ring(rl.Vector2(center_x, center_y), circle_radius - 3, circle_radius, 0, 360, 36, color)
 
     text_size = measure_text_cached(self._font, label, self._font_size)
     text_pos = rl.Vector2(center_x - text_size.x / 2, center_y - text_size.y / 2)
