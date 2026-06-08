@@ -1,6 +1,6 @@
 # Rivian Longitudinal Tuning Branch Changes
 
-This document describes the three major features implemented on the `long-tuning` branch for porting to other branches.
+This document describes the major features implemented on the `long-tuning` branch for porting to other branches.
 
 ---
 
@@ -187,3 +187,43 @@ class PersonalityButton(Widget):
 - **Visibility:** Only shown when `ui_state.has_longitudinal_control` is True
 - **Param:** Writes `LongitudinalPersonality` (int 0/1/2) on tap
 - **Sync:** Reads personality from `selfdriveState` messages to stay in sync with external changes (e.g., steering wheel button)
+
+---
+
+## 4. Reduce Stopping Gap Behind Lead Cars
+
+**Goal:** Reduce the standstill gap from ~20 feet (6m) to ~13 feet (4m) when stopped behind a lead car.
+
+### File Modified
+
+#### `selfdrive/controls/lib/longitudinal_mpc_lib/long_mpc.py`
+
+```python
+# Before
+STOP_DISTANCE = 6.0
+
+# After
+STOP_DISTANCE = 4.0
+```
+
+### How It Works
+
+`STOP_DISTANCE` is part of the safe obstacle distance formula used by the longitudinal MPC:
+
+```
+safe_distance = v_ego² / (2 * COMFORT_BRAKE) + t_follow * v_ego + STOP_DISTANCE
+```
+
+At standstill (v_ego = 0), this simplifies to just `STOP_DISTANCE`, making it the floor distance the car maintains behind a stopped lead.
+
+### Impact Analysis
+
+- **At standstill:** Gap reduced from 6m to 4m (the primary goal)
+- **At speed:** Negligible effect — at 60 mph the total desired distance is ~185m, so 2m less is barely noticeable
+- **Braking onset:** Unchanged in practice — the car starts braking at the same point, just targets a slightly tighter final gap
+
+### Risk Assessment
+
+- 4m (~13 feet) is still a conservative gap for stop-and-go traffic
+- Vision-only lead detection can jitter ±1-2m — 4m provides adequate margin
+- This is a global constant affecting all cars if applied to shared code
