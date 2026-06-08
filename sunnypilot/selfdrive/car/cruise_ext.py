@@ -75,7 +75,7 @@ class VCruiseHelperSP:
         v_cruise_delta = v_cruise_delta * (10 if long_press else 2)
       else:
         v_cruise_delta = v_cruise_delta * (5 if long_press else 1)
-      return long_press, v_cruise_delta
+      return False, v_cruise_delta
 
     # Apply user-specified multipliers to the base increment
     short_increment = np.clip(self.short_increment, 1, 10)
