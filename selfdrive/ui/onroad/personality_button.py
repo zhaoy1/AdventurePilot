@@ -20,7 +20,7 @@ class PersonalityButton(Widget):
     self._params = Params()
     self._personality: int = self._params.get("LongitudinalPersonality", return_default=True)
     self._rect = rl.Rectangle(0, 0, button_size, button_size)
-    self._black_bg = rl.Color(0, 0, 0, 166)
+    self._bg_color = rl.Color(0, 0, 0, 0)
     self._font = gui_app.font(FontWeight.BOLD)
     self._font_size = 44
 
@@ -42,7 +42,7 @@ class PersonalityButton(Widget):
     center_x = int(self._rect.x + self._rect.width // 2)
     center_y = int(self._rect.y + self._rect.height // 2)
 
-    rl.draw_circle(center_x, center_y, self._rect.width / 2, self._black_bg)
+    rl.draw_circle(center_x, center_y, self._rect.width / 2, self._bg_color)
 
     label = PERSONALITY_LABELS.get(self._personality, "STD")
     color = PERSONALITY_COLORS.get(self._personality, rl.WHITE)
