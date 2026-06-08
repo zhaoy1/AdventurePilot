@@ -69,9 +69,12 @@ class VCruiseHelperSP:
     self.short_increment = self.params.get("CustomAccShortPressIncrement", return_default=True)
     self.long_increment = self.params.get("CustomAccLongPressIncrement", return_default=True)
 
-  def update_v_cruise_delta(self, long_press: bool, v_cruise_delta: float) -> tuple[bool, float]:
+  def update_v_cruise_delta(self, long_press: bool, v_cruise_delta: float, is_metric: bool = False) -> tuple[bool, float]:
     if not self.custom_acc_enabled:
-      v_cruise_delta = v_cruise_delta * (5 if long_press else 1)
+      if is_metric:
+        v_cruise_delta = v_cruise_delta * (10 if long_press else 2)
+      else:
+        v_cruise_delta = v_cruise_delta * (5 if long_press else 1)
       return long_press, v_cruise_delta
 
     # Apply user-specified multipliers to the base increment
