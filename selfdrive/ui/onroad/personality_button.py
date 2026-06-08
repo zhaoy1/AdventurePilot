@@ -21,7 +21,7 @@ class PersonalityButton(Widget):
     self._personality: int = self._params.get("LongitudinalPersonality", return_default=True)
     self._rect = rl.Rectangle(0, 0, button_size, button_size)
     self._font = gui_app.font(FontWeight.BOLD)
-    self._font_size = 44
+    self._font_size = 56
 
   def set_rect(self, rect: rl.Rectangle) -> None:
     self._rect.x, self._rect.y = rect.x, rect.y

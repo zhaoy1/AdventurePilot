@@ -124,9 +124,10 @@ class HudRenderer(Widget):
     self._exp_button.render(rl.Rectangle(button_x, button_y, UI_CONFIG.button_size, UI_CONFIG.button_size))
 
     if ui_state.has_longitudinal_control:
-      personality_x = rect.x + UI_CONFIG.border_size
-      personality_y = rect.y + rect.height - UI_CONFIG.border_size - UI_CONFIG.button_size * 2 - 10
-      self._personality_button.render(rl.Rectangle(personality_x, personality_y, UI_CONFIG.button_size, UI_CONFIG.button_size))
+      personality_size = UI_CONFIG.set_speed_height
+      personality_x = rect.x + 60
+      personality_y = rect.y + (rect.height - personality_size) / 2
+      self._personality_button.render(rl.Rectangle(personality_x, personality_y, personality_size, personality_size))
 
   def user_interacting(self) -> bool:
     return self._exp_button.is_pressed or self._personality_button.is_pressed
