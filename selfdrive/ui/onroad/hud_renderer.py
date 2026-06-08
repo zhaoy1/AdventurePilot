@@ -124,7 +124,7 @@ class HudRenderer(Widget):
     self._exp_button.render(rl.Rectangle(button_x, button_y, UI_CONFIG.button_size, UI_CONFIG.button_size))
 
     if ui_state.has_longitudinal_control:
-      personality_size = UI_CONFIG.set_speed_height
+      personality_size = 300
       personality_x = rect.x + 60
       personality_y = rect.y + (rect.height - personality_size) / 2
       self._personality_button.render(rl.Rectangle(personality_x, personality_y, personality_size, personality_size))

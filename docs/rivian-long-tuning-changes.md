@@ -126,7 +126,7 @@ class PersonalityButton(Widget):
     self._personality: int = self._params.get("LongitudinalPersonality", return_default=True)
     self._rect = rl.Rectangle(0, 0, button_size, button_size)
     self._font = gui_app.font(FontWeight.BOLD)
-    self._font_size = 56
+    self._font_size = 72
 
   def set_rect(self, rect: rl.Rectangle) -> None:
     self._rect.x, self._rect.y = rect.x, rect.y
@@ -168,7 +168,7 @@ class PersonalityButton(Widget):
 3. In `_render`: add button rendering (middle-left, 204×204px, only when longitudinal enabled):
    ```python
    if ui_state.has_longitudinal_control:
-     personality_size = UI_CONFIG.set_speed_height
+     personality_size = 300
      personality_x = rect.x + 60
      personality_y = rect.y + (rect.height - personality_size) / 2
      self._personality_button.render(rl.Rectangle(personality_x, personality_y, personality_size, personality_size))
@@ -178,7 +178,7 @@ class PersonalityButton(Widget):
 ### Visual Design
 
 - **Position:** Middle of left side, vertically centered, x-offset 60px from content edge
-- **Size:** 204×204 pixels (same as the MAX speed label area)
+- **Size:** 300×300 pixels
 - **Appearance:** Circle ring outline with 3-letter label inside
   - AGR = red (`255, 75, 75`)
   - STD = white (`255, 255, 255`)
