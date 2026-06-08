@@ -31,7 +31,6 @@ class CarStateExt:
     self.increase_counter = 0
     self.decrease_counter = 0
     self.stalk_down_counter = 0
-    self.stalk_up_counter = 0
 
   def update_longitudinal_upgrade(self, ret: structs.CarState, can_parsers: dict[StrEnum, CANParser]) -> None:
     cp_park = can_parsers[Bus.alt]
@@ -91,28 +90,17 @@ class CarStateExt:
       ret.rightBlindspot = cp_park.vl["BSM_BlindSpotIndicator_Fwd"]["BSM_BlindSpotIndicator_Right"] != 0
 
   def update_longitudinal_without_harness(self, ret: structs.CarState, can_parsers: dict[StrEnum, CANParser]) -> None:
-    cp_adas = can_parsers[Bus.adas]
     cp = can_parsers[Bus.pt]
 
     if self.CP.openpilotLongitudinalControl:
       if not ret.cruiseState.enabled:
         self.set_speed = ret.vEgoCluster
-
-      metric = cp_adas.vl["Cluster"]["Cluster_Unit"] == 0
-      conversion = CV.KPH_TO_MS if metric else CV.MPH_TO_MS
-
-      # VDM_UserAdasRequest: 0=IDLE, 1=UP_1, 2=UP_2, 3=DOWN_1, 4=DOWN_2
-      adas_request = int(cp.vl["VDM_AdasSts"]["VDM_UserAdasRequest"])
-      stalk_down = adas_request in (3, 4)
-      stalk_up = adas_request in (1, 2)
-
-      self.stalk_down_counter = self.stalk_down_counter + 1 if stalk_down else 0
-      self.stalk_up_counter = self.stalk_up_counter + 1 if stalk_up else 0
-
-      if self.stalk_down_counter == 50:
-        self.set_speed = max(self.set_speed, ret.vEgoCluster)
-      if self.stalk_up_counter == 50:
-        self.set_speed += 5 * conversion
+      else:
+        # VDM_UserAdasRequest: 0=IDLE, 1=UP_1, 2=UP_2, 3=DOWN_1, 4=DOWN_2
+        stalk_down = int(cp.vl["VDM_AdasSts"]["VDM_UserAdasRequest"]) in (3, 4)
+        self.stalk_down_counter = self.stalk_down_counter + 1 if stalk_down else 0
+        if self.stalk_down_counter == 1:
+          self.set_speed = ret.vEgoCluster
 
       self.set_speed = max(MIN_SET_SPEED, min(self.set_speed, MAX_SET_SPEED))
       ret.cruiseState.speed = self.set_speed
