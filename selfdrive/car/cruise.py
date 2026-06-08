@@ -114,14 +114,7 @@ class VCruiseHelper(VCruiseHelperSP):
     if self.update_speed_limit_assist_pre_active_confirmed(button_type):
       return
 
-    # When gas is pressed and tapping down, set cruise speed to current speed if driving above cruise speed
-    if not long_press and CS.gasPressed and button_type == ButtonType.decelCruise:
-      current_speed_kph = CS.vEgo * CV.MS_TO_KPH
-      if current_speed_kph > self.v_cruise_kph:
-        self.v_cruise_kph = np.clip(round(current_speed_kph, 1), self.v_cruise_min, V_CRUISE_MAX)
-        return
-
-    long_press, v_cruise_delta = VCruiseHelperSP.update_v_cruise_delta(self, long_press, v_cruise_delta, is_metric)
+    long_press, v_cruise_delta = VCruiseHelperSP.update_v_cruise_delta(self, long_press, v_cruise_delta)
     if long_press and self.v_cruise_kph % v_cruise_delta != 0:  # partial interval
       self.v_cruise_kph = CRUISE_NEAREST_FUNC[button_type](self.v_cruise_kph / v_cruise_delta) * v_cruise_delta
     else:
