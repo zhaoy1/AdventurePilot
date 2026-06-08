@@ -29,7 +29,6 @@ class CarInterface(CarInterfaceBase):
     ret.alphaLongitudinalAvailable = True
     if alpha_long:
       ret.openpilotLongitudinalControl = True
-      ret.pcmCruise = False
       ret.safetyConfigs[0].safetyParam |= RivianSafetyFlags.LONG_CONTROL.value
 
     ret.longitudinalActuatorDelay = 0.15
@@ -52,7 +51,6 @@ class CarInterface(CarInterfaceBase):
 
     if alpha_long and stock_cp.alphaLongitudinalAvailable:
       stock_cp.openpilotLongitudinalControl = True
-      stock_cp.pcmCruise = False
       stock_cp.safetyConfigs[0].safetyParam |= RivianSafetyFlags.LONG_CONTROL.value
       if not (ret.flags & RivianFlagsSP.LONGITUDINAL_HARNESS_UPGRADE):
         ret.flags |= RivianFlagsSP.LONGITUDINAL_WITHOUT_HARNESS.value

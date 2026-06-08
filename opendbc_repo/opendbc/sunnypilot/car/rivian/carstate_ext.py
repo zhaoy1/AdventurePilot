@@ -98,9 +98,22 @@ class CarStateExt:
       else:
         # VDM_UserAdasRequest: 0=IDLE, 1=UP_1, 2=UP_2, 3=DOWN_1, 4=DOWN_2
         stalk_down = int(cp.vl["VDM_AdasSts"]["VDM_UserAdasRequest"]) in (3, 4)
+        prev_stalk_down_counter = self.stalk_down_counter
         self.stalk_down_counter = self.stalk_down_counter + 1 if stalk_down else 0
-        if self.stalk_down_counter == 1:
-          self.set_speed = ret.vEgoCluster
+
+        tap_increment = 1.0 * CV.MPH_TO_MS
+        hold_increment = 5.0 * CV.MPH_TO_MS
+
+        if self.stalk_down_counter == 0 and prev_stalk_down_counter > 0:
+          # Released: if was a short press (< 1s = 100 frames at 100Hz), apply tap increment
+          if prev_stalk_down_counter < 100:
+            if ret.gasPressed and ret.vEgoCluster > self.set_speed:
+              self.set_speed = ret.vEgoCluster
+            else:
+              self.set_speed += tap_increment
+        elif self.stalk_down_counter > 0 and self.stalk_down_counter % 100 == 0:
+          # Held for 1s (or multiples): apply hold increment
+          self.set_speed += hold_increment
 
       self.set_speed = max(MIN_SET_SPEED, min(self.set_speed, MAX_SET_SPEED))
       ret.cruiseState.speed = self.set_speed
