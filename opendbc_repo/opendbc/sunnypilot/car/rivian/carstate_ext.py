@@ -105,14 +105,12 @@ class CarStateExt:
         hold_increment = 5.0 * CV.MPH_TO_MS
 
         if self.stalk_down_counter == 0 and prev_stalk_down_counter > 0:
-          # Released: if was a short press (< 1s = 100 frames at 100Hz), apply tap increment
-          if prev_stalk_down_counter < 100:
+          if prev_stalk_down_counter < 50:
             if ret.gasPressed and ret.vEgoCluster > self.set_speed:
               self.set_speed = ret.vEgoCluster
             else:
               self.set_speed += tap_increment
-        elif self.stalk_down_counter > 0 and self.stalk_down_counter % 100 == 0:
-          # Held for 1s (or multiples): apply hold increment
+        elif self.stalk_down_counter > 0 and self.stalk_down_counter % 50 == 0:
           self.set_speed += hold_increment
 
       self.set_speed = max(MIN_SET_SPEED, min(self.set_speed, MAX_SET_SPEED))
