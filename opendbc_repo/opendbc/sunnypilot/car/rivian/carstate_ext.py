@@ -102,7 +102,7 @@ class CarStateExt:
         self.stalk_down_counter = self.stalk_down_counter + 1 if stalk_down else 0
 
         tap_increment = 1.0 * CV.MPH_TO_MS
-        hold_increment = 5.0 * CV.MPH_TO_MS
+        hold_step_mph = 5.0
 
         if self.stalk_down_counter == 0 and prev_stalk_down_counter > 0:
           if prev_stalk_down_counter < 50:
@@ -111,7 +111,9 @@ class CarStateExt:
             else:
               self.set_speed += tap_increment
         elif self.stalk_down_counter > 0 and self.stalk_down_counter % 50 == 0:
-          self.set_speed += hold_increment
+          current_mph = self.set_speed * CV.MS_TO_MPH
+          next_mph = (int(current_mph / hold_step_mph) + 1) * hold_step_mph
+          self.set_speed = next_mph * CV.MPH_TO_MS
 
       self.set_speed = max(MIN_SET_SPEED, min(self.set_speed, MAX_SET_SPEED))
       ret.cruiseState.speed = self.set_speed
