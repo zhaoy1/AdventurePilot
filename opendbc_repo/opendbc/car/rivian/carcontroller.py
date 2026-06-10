@@ -42,9 +42,6 @@ class CarController(CarControllerBase, MadsCarController):
     if self.CP.openpilotLongitudinalControl:
       accel = float(np.clip(actuators.accel, CarControllerParams.ACCEL_MIN, CarControllerParams.ACCEL_MAX))
       can_sends.append(create_longitudinal(self.packer, self.frame, accel, CC.enabled))
-      # Forward VDM_AdasSts but mask stalk signal to prevent ACM error
-      for msg in CS.vdm_adas_status:
-        can_sends.append(create_adas_status(self.packer, msg, None, user_adas_request=0))
     else:
       interface_status = None
       if CC.cruiseControl.cancel:
