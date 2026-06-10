@@ -89,9 +89,38 @@ class CarStateExt:
       ret.leftBlindspot = cp_park.vl["BSM_BlindSpotIndicator_Fwd"]["BSM_BlindSpotIndicator_Left"] != 0
       ret.rightBlindspot = cp_park.vl["BSM_BlindSpotIndicator_Fwd"]["BSM_BlindSpotIndicator_Right"] != 0
 
+  def update_longitudinal_without_harness(self, ret: structs.CarState, can_parsers: dict[StrEnum, CANParser]) -> None:
+    cp = can_parsers[Bus.pt]
+
+    if self.CP.openpilotLongitudinalControl:
+      if not ret.cruiseState.enabled:
+        self.set_speed = ret.vEgoCluster
+      else:
+        # VDM_UserAdasRequest: 0=IDLE, 1=UP_1, 2=UP_2, 3=DOWN_1, 4=DOWN_2
+        stalk_down = int(cp.vl["VDM_AdasSts"]["VDM_UserAdasRequest"]) in (3, 4)
+        prev_stalk_down_counter = self.stalk_down_counter
+        self.stalk_down_counter = self.stalk_down_counter + 1 if stalk_down else 0
+
+        tap_increment = 1.0 * CV.MPH_TO_MS
+        hold_increment = 5.0 * CV.MPH_TO_MS
+
+        if self.stalk_down_counter == 0 and prev_stalk_down_counter > 0:
+          if prev_stalk_down_counter < 50:
+            if ret.gasPressed and ret.vEgoCluster > self.set_speed:
+              self.set_speed = ret.vEgoCluster
+            else:
+              self.set_speed += tap_increment
+        elif self.stalk_down_counter > 0 and self.stalk_down_counter % 50 == 0:
+          self.set_speed += hold_increment
+
+      self.set_speed = max(MIN_SET_SPEED, min(self.set_speed, MAX_SET_SPEED))
+      ret.cruiseState.speed = self.set_speed
+
   def update(self, ret: structs.CarState, can_parsers: dict[StrEnum, CANParser]) -> None:
     if self.CP_SP.flags & RivianFlagsSP.LONGITUDINAL_HARNESS_UPGRADE:
       self.update_longitudinal_upgrade(ret, can_parsers)
+    elif self.CP_SP.flags & RivianFlagsSP.LONGITUDINAL_WITHOUT_HARNESS:
+      self.update_longitudinal_without_harness(ret, can_parsers)
 
   @staticmethod
   def get_parser(CP, CP_SP) -> dict[StrEnum, CANParser]:
