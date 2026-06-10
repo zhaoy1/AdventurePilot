@@ -1,3 +1,4 @@
+import time
 import pyray as rl
 from dataclasses import dataclass
 from openpilot.common.constants import CV
@@ -74,6 +75,9 @@ class HudRenderer(Widget):
     self._exp_button: ExpButton = ExpButton(UI_CONFIG.button_size, UI_CONFIG.wheel_icon_size)
     self._personality_button: PersonalityButton = PersonalityButton(UI_CONFIG.button_size)
 
+    self._big_speed_show_until: float = 0.0
+    self._last_set_speed: float = 0.0
+
   def _update_state(self) -> None:
     """Update HUD state based on car state and controls state."""
     sm = ui_state.sm
@@ -102,6 +106,14 @@ class HudRenderer(Widget):
     speed_conversion = CV.MS_TO_KPH if ui_state.is_metric else CV.MS_TO_MPH
     self.speed = max(0.0, v_ego * speed_conversion)
 
+    if self.is_cruise_set:
+      current_set = round(self.set_speed)
+      if current_set != round(self._last_set_speed) and self._last_set_speed > 0:
+        self._big_speed_show_until = time.monotonic() + 5.0
+      self._last_set_speed = self.set_speed
+    else:
+      self._last_set_speed = 0.0
+
   def _render(self, rect: rl.Rectangle) -> None:
     """Render HUD elements to the screen."""
     # Draw the header background
@@ -128,6 +140,9 @@ class HudRenderer(Widget):
       personality_x = rect.x + 60
       personality_y = rect.y + (rect.height - personality_size) / 2
       self._personality_button.render(rl.Rectangle(personality_x, personality_y, personality_size, personality_size))
+
+    if self.is_cruise_set and time.monotonic() < self._big_speed_show_until:
+      self._draw_big_cruise_speed(rect)
 
   def user_interacting(self) -> bool:
     return self._exp_button.is_pressed or self._personality_button.is_pressed
@@ -174,6 +189,16 @@ class HudRenderer(Widget):
       0,
       set_speed_color,
     )
+
+  def _draw_big_cruise_speed(self, rect: rl.Rectangle) -> None:
+    """Draw large cruise speed in the center of the screen."""
+    font_size = int(rect.height / 2)
+    speed_text = str(round(self.set_speed))
+    text_size = measure_text_cached(self._font_bold, speed_text, font_size)
+    x = rect.x + (rect.width - text_size.x) / 2
+    y = rect.y + (rect.height - text_size.y) / 2
+    color = rl.Color(128, 216, 166, 200)
+    rl.draw_text_ex(self._font_bold, speed_text, rl.Vector2(x, y), font_size, 0, color)
 
   def _draw_current_speed(self, rect: rl.Rectangle) -> None:
     """Draw the current vehicle speed and unit."""
