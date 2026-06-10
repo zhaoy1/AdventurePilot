@@ -42,11 +42,12 @@ class CarController(CarControllerBase, MadsCarController):
     if self.CP.openpilotLongitudinalControl:
       accel = float(np.clip(actuators.accel, CarControllerParams.ACCEL_MIN, CarControllerParams.ACCEL_MAX))
       can_sends.append(create_longitudinal(self.packer, self.frame, accel, CC.enabled))
-      # Forward VDM_AdasSts: only mask DOWN signals (3,4) to IDLE so ACM doesn't error.
-      # Pass through UP (1,2) and IDLE (0) so ACM can cancel/disengage cruise.
+      # Forward VDM_AdasSts: only mask DOWN signals (3,4) when cruise is already enabled
+      # on the ACM side. Pass through everything else (UP for cancel, DOWN for initial enable).
+      cruise_active = CS.out.cruiseState.enabled
       for msg in CS.vdm_adas_status:
         stalk_val = int(msg.get("VDM_UserAdasRequest", 0))
-        override = 0 if stalk_val in (3, 4) else None
+        override = 0 if (cruise_active and stalk_val in (3, 4)) else None
         can_sends.append(create_adas_status(self.packer, msg, None, user_adas_request=override))
     else:
       interface_status = None
