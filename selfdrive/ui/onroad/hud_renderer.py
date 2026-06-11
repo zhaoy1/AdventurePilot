@@ -106,13 +106,15 @@ class HudRenderer(Widget):
     speed_conversion = CV.MS_TO_KPH if ui_state.is_metric else CV.MS_TO_MPH
     self.speed = max(0.0, v_ego * speed_conversion)
 
-    if self.is_cruise_set:
+    cruise_enabled = car_state.cruiseState.enabled
+    if cruise_enabled and self.is_cruise_set:
       current_set = round(self.set_speed)
       if current_set != round(self._last_set_speed) and self._last_set_speed > 0:
         self._big_speed_show_until = time.monotonic() + 5.0
       self._last_set_speed = self.set_speed
     else:
       self._last_set_speed = 0.0
+      self._big_speed_show_until = 0.0
 
   def _render(self, rect: rl.Rectangle) -> None:
     """Render HUD elements to the screen."""
@@ -141,7 +143,7 @@ class HudRenderer(Widget):
       personality_y = rect.y + (rect.height - personality_size) / 2
       self._personality_button.render(rl.Rectangle(personality_x, personality_y, personality_size, personality_size))
 
-    if self.is_cruise_set and time.monotonic() < self._big_speed_show_until:
+    if time.monotonic() < self._big_speed_show_until:
       self._draw_big_cruise_speed(rect)
 
   def user_interacting(self) -> bool:
