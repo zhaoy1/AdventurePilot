@@ -192,12 +192,12 @@ class HudRenderer(Widget):
 
   def _draw_big_cruise_speed(self, rect: rl.Rectangle) -> None:
     """Draw large cruise speed in the center of the screen."""
-    font_size = int(rect.height / 2)
+    font_size = int(rect.height * 0.65)
     speed_text = str(round(self.set_speed))
     text_size = measure_text_cached(self._font_bold, speed_text, font_size)
     x = rect.x + (rect.width - text_size.x) / 2
     y = rect.y + (rect.height - text_size.y) / 2
-    color = rl.Color(128, 216, 166, 200)
+    color = rl.Color(255, 255, 255, 255)
     rl.draw_text_ex(self._font_bold, speed_text, rl.Vector2(x, y), font_size, 0, color)
 
   def _draw_current_speed(self, rect: rl.Rectangle) -> None:
