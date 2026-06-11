@@ -151,8 +151,10 @@ This document describes the changes on the `long-tuning-tizi` branch (based on `
 
 ### Behavior
 
+- Only shown when `cruiseState.enabled` is True (cruise is actually active)
 - When cruise speed changes (tap or hold), displays the set speed in the center of the screen
-- Font size is half the screen height
-- Color: translucent green (`128, 216, 166, 200`) matching the engaged state
-- Disappears 5 seconds after the last speed change
+- Dark grey backdrop covers the full screen (same as "Reverse Gear" alert: `#151515` at 94% opacity)
+- Font: bright white, 65% of screen height
+- Disappears 3 seconds after the last speed change
 - Updates in real time with each tap/hold (timer resets on every change)
+- Immediately hidden when cruise is disabled
