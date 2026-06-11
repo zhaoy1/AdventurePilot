@@ -14,6 +14,7 @@ class CarState(CarStateBase, CarStateExt):
     CarStateBase.__init__(self, CP, CP_SP)
     CarStateExt.__init__(self, CP, CP_SP)
     self.last_speed = 30
+    self.tsr_speed_valid = False
 
     self.acm_lka_hba_cmd: dict | None = None
     self.sccm_wheel_touch: dict | None = None
@@ -49,7 +50,9 @@ class CarState(CarStateBase, CarStateExt):
 
     # Cruise state
     speed = min(int(cp_adas.vl["ACM_tsrCmd"]["ACM_tsrSpdDisClsMain"]), 85)
-    self.last_speed = speed if speed != 0 else self.last_speed
+    if speed != 0:
+      self.last_speed = speed
+      self.tsr_speed_valid = True
     ret.cruiseState.enabled = cp_cam.vl["ACM_Status"]["ACM_FeatureStatus"] == 1
     # TODO: find cruise set speed on CAN
     ret.cruiseState.speed = self.last_speed * CV.MPH_TO_MS  # detected speed limit
