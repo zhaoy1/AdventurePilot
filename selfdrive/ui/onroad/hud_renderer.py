@@ -110,7 +110,7 @@ class HudRenderer(Widget):
     if cruise_enabled and self.is_cruise_set:
       current_set = round(self.set_speed)
       if current_set != round(self._last_set_speed) and self._last_set_speed > 0:
-        self._big_speed_show_until = time.monotonic() + 5.0
+        self._big_speed_show_until = time.monotonic() + 3.0
       self._last_set_speed = self.set_speed
     else:
       self._last_set_speed = 0.0
