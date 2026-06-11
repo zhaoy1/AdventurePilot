@@ -48,14 +48,18 @@ This document describes the changes on the `long-tuning-tizi` branch (based on `
 |--------|-----------|--------|
 | Tap (release < 0.5s) | Normal | +1 mph |
 | Tap (release < 0.5s) | Gas pressed AND current speed > set speed | Set cruise to current speed |
+| Double tap (two taps within 0.5s) | TSR speed limit available and >= 35 mph | Set cruise to speed limit + 10% |
+| Double tap (two taps within 0.5s) | TSR unavailable or < 35 mph | +1 mph (normal tap) |
 | Hold (every 0.5s) | — | Snap to next 5 mph (e.g., 47→50→55→60) |
 
 ### Key Details
 
 - Control loop runs at 100Hz, so 50 frames = 0.5 second
 - Tap is detected on **release** (counter resets to 0 while previous was > 0)
+- Double-tap detected when second tap release occurs within 50 frames of the first
 - Hold fires at every `counter % 50 == 0` (i.e., at 0.5s, 1s, 1.5s...)
 - Hold snaps to next multiple of 5 mph rather than adding a flat 5
+- Speed limit from TSR (`ACM_tsrSpdDisClsMain`); must have received at least one valid reading
 - Speed bounds: 20–85 mph (`MIN_SET_SPEED` / `MAX_SET_SPEED`)
 - Stalk "down" = `VDM_UserAdasRequest` values 3 or 4
 - Stalk "up" passes through to ACM to cancel cruise
