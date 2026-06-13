@@ -31,8 +31,6 @@ class CarStateExt:
     self.increase_counter = 0
     self.decrease_counter = 0
     self.stalk_down_counter = 0
-    self.last_tap_frame = 0
-    self.frame_count = 0
 
   def update_longitudinal_upgrade(self, ret: structs.CarState, can_parsers: dict[StrEnum, CANParser]) -> None:
     cp_park = can_parsers[Bus.alt]
@@ -93,7 +91,6 @@ class CarStateExt:
 
   def update_longitudinal_without_harness(self, ret: structs.CarState, can_parsers: dict[StrEnum, CANParser]) -> None:
     cp = can_parsers[Bus.pt]
-    self.frame_count += 1
 
     if self.CP.openpilotLongitudinalControl:
       if not ret.cruiseState.enabled:
@@ -109,14 +106,10 @@ class CarStateExt:
 
         if self.stalk_down_counter == 0 and prev_stalk_down_counter > 0:
           if prev_stalk_down_counter < 50:
-            # Double-tap: two taps within 50 frames (0.5s) sets speed to speed limit + 10%
-            if (self.frame_count - self.last_tap_frame) < 50 and self.tsr_speed_valid and self.last_speed >= 35:
-              self.set_speed = self.last_speed * 1.1 * CV.MPH_TO_MS
-            elif ret.gasPressed and ret.vEgoCluster > self.set_speed:
+            if ret.gasPressed and ret.vEgoCluster > self.set_speed:
               self.set_speed = ret.vEgoCluster
             else:
               self.set_speed += tap_increment
-            self.last_tap_frame = self.frame_count
         elif self.stalk_down_counter > 0 and self.stalk_down_counter % 50 == 0:
           current_mph = self.set_speed * CV.MS_TO_MPH
           next_mph = (int(current_mph / hold_step_mph) + 1) * hold_step_mph
