@@ -37,10 +37,8 @@ class CarInterface(CarInterfaceBase):
     ret.longitudinalActuatorDelay = 0.15
     ret.vEgoStopping = 0.25
     ret.stopAccel = -0.2
-    ret.longitudinalTuning.kpBP = [0.]
-    ret.longitudinalTuning.kpV = [1.0]
-    ret.longitudinalTuning.kiBP = [0.]
-    ret.longitudinalTuning.kiV = [0.2]
+    ret.longitudinalTuning.kiBP = [0., 5., 35.]
+    ret.longitudinalTuning.kiV = [1.2, 0.8, 0.5]
 
     return ret
 
