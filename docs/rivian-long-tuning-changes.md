@@ -101,6 +101,8 @@ This document describes the changes on the `long-tuning-tizi` branch (based on `
 |-----------|--------|-------|--------|
 | `longitudinalActuatorDelay` | 0.35 | 0.15 | Faster response to accel commands |
 | `stopAccel` | 0 | -0.2 | Light braking at stop for smoother hold |
+| `longitudinalTuning.kpBP` | [0.] | [0., 35.] | Speed breakpoints for proportional gain (m/s) |
+| `longitudinalTuning.kpV` | [0.] | [0.5, 0.3] | Proportional gain for immediate response to accel/decel demands |
 | `longitudinalTuning.kiBP` | [0.] | [0., 5., 35.] | Speed breakpoints for integral gain (m/s) |
 | `longitudinalTuning.kiV` | [0.] | [1.2, 0.8, 0.5] | Integral gain: higher at low speed for stopping, lower at highway for smoothness (Honda-matched) |
 
