@@ -101,6 +101,7 @@ This document describes the changes on the `long-tuning-tizi` branch (based on `
 |-----------|--------|-------|--------|
 | `longitudinalActuatorDelay` | 0.35 | 0.15 | Faster response to accel commands |
 | `stopAccel` | 0 | -0.2 | Light braking at stop for smoother hold |
+| `longitudinalTuning.kpV` | [0.] | [1.0] | Proportional gain for immediate response to sudden braking |
 | `longitudinalTuning.kiV` | (default) | [0.2] | Integral gain to reduce steady-state error |
 
 ---
