@@ -99,12 +99,43 @@ This document describes the changes on the `long-tuning-tizi` branch (based on `
 
 | Parameter | Before | After | Reason |
 |-----------|--------|-------|--------|
-| `longitudinalActuatorDelay` | 0.35 | 0.5 | Measured ~0.8s from standstill; 0.5 conservative to avoid overcompensating at speed |
+| `longitudinalActuatorDelay` | 0.35 | 0.15 | See actuator delay analysis below |
 | `stopAccel` | 0 | -0.2 | Light braking at stop for smoother hold |
 | `longitudinalTuning.kpBP` | [0.] | [0., 35.] | Speed breakpoints for proportional gain (m/s) |
 | `longitudinalTuning.kpV` | [0.] | [1.0, 0.3] | Proportional gain: strong from stop for faster catch-up, gentle at highway |
 | `longitudinalTuning.kiBP` | [0.] | [0., 5., 35.] | Speed breakpoints for integral gain (m/s) |
 | `longitudinalTuning.kiV` | [0.] | [1.2, 0.8, 0.5] | Integral gain: higher at low speed for stopping, lower at highway for smoothness (Honda-matched) |
+
+### Actuator Delay Analysis
+
+The Rivian has asymmetric actuator response — braking is nearly instant but acceleration from
+standstill has significant delay. A single `longitudinalActuatorDelay` value is a compromise.
+
+**Acceleration from standstill (route 00000035--1e784df48b, segment 5):**
+
+| Time (s) | Commanded (m/s²) | Actual (m/s²) | Notes |
+|----------|-----------------|---------------|-------|
+| 16.0 | 0.34 | 0.0 | Command starts, no response |
+| 16.4 | 0.80 | 0.0 | Still no response |
+| 16.8 | 1.30 | 0.0 | ~800ms with zero response |
+| 16.82 | 1.30 | 0.21 | Car finally starts moving |
+| 16.91 | 0.53 | 1.66 | Overshoots, then settles |
+
+**Measured acceleration delay from standstill: ~800ms**
+
+**Braking at 27 mph (same route, segment 3):**
+
+| Time (s) | Commanded (m/s²) | Actual (m/s²) | Notes |
+|----------|-----------------|---------------|-------|
+| 10.6 | -0.36 | -0.69 | Already braking harder than commanded |
+| 10.7 | -0.57 | -0.52 | Tracking closely |
+| 10.8 | -0.57 | -0.62 | <200ms delay |
+
+**Measured braking delay: ~100-200ms**
+
+**Decision:** Keep `longitudinalActuatorDelay = 0.15` to avoid braking too conservatively (which
+creates excessive gap to lead car). Rely on kpV/kiV to compensate for the slow acceleration
+response instead — the PID adds extra output when the car underdelivers on accel commands.
 
 ---
 
