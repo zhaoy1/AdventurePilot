@@ -99,7 +99,7 @@ This document describes the changes on the `long-tuning-tizi` branch (based on `
 
 | Parameter | Before | After | Reason |
 |-----------|--------|-------|--------|
-| `longitudinalActuatorDelay` | 0.35 | 0.15 | Faster response to accel commands |
+| `longitudinalActuatorDelay` | 0.35 | 0.5 | Measured ~0.8s from standstill; 0.5 conservative to avoid overcompensating at speed |
 | `stopAccel` | 0 | -0.2 | Light braking at stop for smoother hold |
 | `longitudinalTuning.kpBP` | [0.] | [0., 35.] | Speed breakpoints for proportional gain (m/s) |
 | `longitudinalTuning.kpV` | [0.] | [1.0, 0.3] | Proportional gain: strong from stop for faster catch-up, gentle at highway |
