@@ -107,6 +107,31 @@ This document describes the changes on the `long-tuning-tizi` branch (based on `
 | `longitudinalTuning.kiBP` | [0.] | [0., 5., 35.] | Speed breakpoints for integral gain (m/s) |
 | `longitudinalTuning.kiV` | [0.] | [1.2, 0.8, 0.5] | Integral gain: higher at low speed for stopping, lower at highway for smoothness (Honda-matched) |
 
+### Jerk Factor Analysis
+
+The MPC planner uses cost weights to balance smoothness vs responsiveness. The `jerk_factor`
+multiplies two costs:
+- `A_CHANGE_COST` (200): penalty for changing acceleration between timesteps
+- `J_EGO_COST` (5): penalty for jerk (rate of acceleration change)
+
+With `jerk_factor = 0.5` (stock aggressive): effective costs are 100 and 2.5
+With `jerk_factor = 0.3` (new): effective costs are 60 and 1.5
+
+**Problem observed (route 00000039--371bfe3efb, segment 7):**
+
+When the lead car accelerated away from ~37 mph, the planner only commanded 0.6–0.8 m/s²
+despite the car being capable of 1.2+ m/s². The gap took excessively long to close (~2s
+following distance during catch-up vs 1.25s target). The planner was being too conservative
+about ramping up acceleration.
+
+**Why not change T_FOLLOW:** The steady-state following distance at 1.25s is acceptable.
+The issue is purely the *transition speed* — how fast the planner ramps acceleration to
+close the gap. Reducing jerk_factor allows faster ramp-up without changing the target gap.
+
+**Why kpV/kiV didn't help:** Log data showed the car was *overdelivering* relative to
+commands (actual > commanded). The PID was working correctly. The bottleneck was the planner
+not asking for enough acceleration in the first place due to high jerk penalties.
+
 ### Actuator Delay Analysis
 
 The Rivian has asymmetric actuator response — braking is nearly instant but acceleration from
