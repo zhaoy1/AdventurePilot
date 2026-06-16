@@ -105,8 +105,8 @@ This document describes the changes on the `long-tuning-tizi` branch (based on `
 | `T_FOLLOW` (standard) | 1.45 | 1.25 | Set to previous aggressive value (~1.7s actual gap) |
 | `T_FOLLOW` (relaxed) | 1.75 | 1.45 | Set to previous standard value (~1.9s actual gap) |
 | `jerk_factor` (aggressive) | 0.5 | 0.3 | Lower jerk penalty allows faster acceleration changes when catching up to lead |
-| `longitudinalTuning.kpBP` | [0.] | [0., 35.] | Speed breakpoints for proportional gain (m/s) |
-| `longitudinalTuning.kpV` | [0.] | [1.0, 0.3] | Proportional gain: strong from stop for faster catch-up, gentle at highway |
+| `longitudinalTuning.kpBP` | [0.] | [0., 5., 35.] | Speed breakpoints for proportional gain (m/s) |
+| `longitudinalTuning.kpV` | [0.] | [0.3, 1.0, 0.3] | Low at standstill (smooth launch), high mid-speed (fast catch-up), low highway (smooth cruise) |
 | `longitudinalTuning.kiBP` | [0.] | [0., 5., 35.] | Speed breakpoints for integral gain (m/s) |
 | `longitudinalTuning.kiV` | [0.] | [1.2, 0.8, 0.5] | Integral gain: higher at low speed for stopping, lower at highway for smoothness (Honda-matched) |
 
