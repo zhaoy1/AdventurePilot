@@ -101,7 +101,8 @@ This document describes the changes on the `long-tuning-tizi` branch (based on `
 |-----------|--------|-------|--------|
 | `longitudinalActuatorDelay` | 0.35 | 0.15 | See actuator delay analysis below |
 | `stopAccel` | 0 | -0.5 | Firmer braking in final meters to reduce stopped gap |
-| `T_FOLLOW` (aggressive) | 1.25 | 1.0 | Reduce highway following gap (actual gap ~1.7s with 1.25, target ~1.45s with 1.0) |
+| `T_FOLLOW` (aggressive) | 1.25 | 0.8 | Reduce highway following gap (actual gap ~1.25s, down from ~1.7s) |
+| `T_FOLLOW` (standard) | 1.45 | 1.25 | Set to previous aggressive value (~1.7s actual gap) |
 | `jerk_factor` (aggressive) | 0.5 | 0.3 | Lower jerk penalty allows faster acceleration changes when catching up to lead |
 | `longitudinalTuning.kpBP` | [0.] | [0., 35.] | Speed breakpoints for proportional gain (m/s) |
 | `longitudinalTuning.kpV` | [0.] | [1.0, 0.3] | Proportional gain: strong from stop for faster catch-up, gentle at highway |
