@@ -100,7 +100,7 @@ This document describes the changes on the `long-tuning-tizi` branch (based on `
 | Parameter | Before | After | Reason |
 |-----------|--------|-------|--------|
 | `longitudinalActuatorDelay` | 0.35 | 0.15 | See actuator delay analysis below |
-| `stopAccel` | 0 | -0.2 | Light braking at stop for smoother hold |
+| `stopAccel` | 0 | -0.5 | Firmer braking in final meters to reduce stopped gap |
 | `jerk_factor` (aggressive) | 0.5 | 0.3 | Lower jerk penalty allows faster acceleration changes when catching up to lead |
 | `longitudinalTuning.kpBP` | [0.] | [0., 35.] | Speed breakpoints for proportional gain (m/s) |
 | `longitudinalTuning.kpV` | [0.] | [1.0, 0.3] | Proportional gain: strong from stop for faster catch-up, gentle at highway |
