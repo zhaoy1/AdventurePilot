@@ -103,7 +103,8 @@ This document describes the changes on the `long-tuning-tizi` branch (based on `
 | `stopAccel` | 0 | -0.5 | Firmer braking in final meters to reduce stopped gap |
 | `T_FOLLOW` (aggressive) | 1.25 | 0.8 | Reduce highway following gap (actual gap ~1.25s, down from ~1.7s) |
 | `T_FOLLOW` (standard) | 1.45 | 1.25 | Set to previous aggressive value (~1.7s actual gap) |
-| `T_FOLLOW` (relaxed) | 1.75 | 1.45 | Set to previous standard value (~1.9s actual gap) |
+| `T_FOLLOW` (relaxed→auto) | 1.75 | auto | Auto mode: 0.8 above 55 mph (highway), 1.25 below (local) |
+| `jerk_factor` (relaxed→auto) | 1.0 | auto | Auto mode: 0.3 above 55 mph (highway), 1.0 below (local) |
 | `X_EGO_OBSTACLE_COST` | 3.0 | 7.0 | Higher gap error cost makes planner brake earlier when closing on slow lead |
 | `jerk_factor` (aggressive) | 0.5 | 0.3 | Lower jerk penalty allows faster acceleration changes when catching up to lead |
 | `longitudinalTuning.kpBP` | [0.] | [0., 5., 35.] | Speed breakpoints for proportional gain (m/s) |

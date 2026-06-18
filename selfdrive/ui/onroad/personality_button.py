@@ -6,11 +6,11 @@ from openpilot.system.ui.lib.application import gui_app, FontWeight
 from openpilot.system.ui.lib.text_measure import measure_text_cached
 from openpilot.system.ui.widgets import Widget
 
-PERSONALITY_LABELS = {0: "AGR", 1: "STD", 2: "RLX"}
+PERSONALITY_LABELS = {0: "AGR", 1: "STD", 2: "AUT"}
 PERSONALITY_COLORS = {
   0: rl.Color(255, 75, 75, 255),
   1: rl.Color(255, 255, 255, 255),
-  2: rl.Color(75, 200, 255, 255),
+  2: rl.Color(75, 255, 150, 255),
 }
 
 
