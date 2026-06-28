@@ -122,19 +122,21 @@ The cost is now speed-dependent:
 
 | Speed | X_EGO_OBSTACLE_COST | Behavior |
 |-------|--------------------:|----------|
-| 0–45 mph | 6.0 | Responsive: brakes early when approaching slow lead |
-| 60 mph | ~4.2 | Moderate: balanced |
+| 0–22 mph | 6.0 | Responsive: brakes early when approaching slow lead |
+| 40 mph | ~4.9 | Slightly elastic: less sticky to lead |
+| 56 mph | 4.0 | Moderate: balanced |
 | 78 mph | 3.0 | Elastic: tolerates gap variation for smooth ride |
 
-**Why:** On highway, the lead car's speed fluctuates slightly (±2 mph). With a fixed high cost,
-the planner constantly adjusts to maintain exact distance — causing frequent small
-accelerations/decelerations that feel jerky. With a lower cost at highway speed, the planner
+**Why:** At higher speeds, the lead car's speed fluctuates slightly (±2 mph). With a fixed high
+cost, the planner constantly adjusts to maintain exact distance — causing frequent small
+accelerations/decelerations that feel jerky or "sticky." With a lower cost at speed, the planner
 accepts the gap being temporarily 10-20% larger or smaller, only correcting for significant
 deviations. The ride is smoother because the car isn't constantly reacting to minor speed
 changes from the lead.
 
-On local roads the high cost is kept so the planner brakes early when approaching a much
-slower car (the original problem that motivated increasing the cost from 3.0).
+Below 22 mph the high cost is kept so the planner brakes early when approaching a much
+slower car in stop-and-go scenarios (the original problem that motivated increasing the cost
+from 3.0).
 
 ### Jerk Factor Analysis
 
