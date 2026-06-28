@@ -274,8 +274,8 @@ class LongitudinalMpc:
   def set_weights(self, prev_accel_constraint=True, personality=log.LongitudinalPersonality.standard, v_ego=0.):
     jerk_factor = get_jerk_factor(personality, v_ego)
     a_change_cost = A_CHANGE_COST if prev_accel_constraint else 0
-    # Lower obstacle cost at highway speed for elastic gap (fewer corrections, smoother ride)
-    x_ego_obstacle_cost = np.interp(v_ego, [0., 20., 35.], [X_EGO_OBSTACLE_COST, X_EGO_OBSTACLE_COST, 3.])
+    # Lower obstacle cost at higher speeds for elastic gap (fewer corrections, smoother ride)
+    x_ego_obstacle_cost = np.interp(v_ego, [0., 10., 25., 35.], [X_EGO_OBSTACLE_COST, X_EGO_OBSTACLE_COST, 4., 3.])
     cost_weights = [x_ego_obstacle_cost, X_EGO_COST, V_EGO_COST, A_EGO_COST, jerk_factor * a_change_cost, jerk_factor * J_EGO_COST]
     constraint_cost_weights = [LIMIT_COST, LIMIT_COST, LIMIT_COST, DANGER_ZONE_COST]
     self.set_cost_weights(cost_weights, constraint_cost_weights)
