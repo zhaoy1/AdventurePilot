@@ -107,8 +107,8 @@ This document describes the changes on the `long-tuning-tizi` branch (based on `
 | `jerk_factor` (relaxed→auto) | 1.0 | auto | Auto mode: 0.3 above 55 mph (highway), 1.0 below (local) |
 | `X_EGO_OBSTACLE_COST` | 3.0 | 7.0 | Higher gap error cost makes planner brake earlier when closing on slow lead |
 | `jerk_factor` (aggressive) | 0.5 | 0.3 | Lower jerk penalty allows faster acceleration changes when catching up to lead |
-| `longitudinalTuning.kpBP` | [0.] | [0., 5., 35.] | Speed breakpoints for proportional gain (m/s) |
-| `longitudinalTuning.kpV` | [0.] | [0.3, 1.0, 0.3] | Low at standstill (smooth launch), high mid-speed (fast catch-up), low highway (smooth cruise) |
+| `longitudinalTuning.kpBP` | [0.] | [0., 5., 20., 35.] | Speed breakpoints for proportional gain (m/s) |
+| `longitudinalTuning.kpV` | [0.] | [0.3, 1.0, 0.2, 0.1] | Low at standstill (smooth launch), high mid-speed (fast catch-up), low above 45 mph (smooth cruise) |
 | `longitudinalTuning.kiBP` | [0.] | [0., 5., 35.] | Speed breakpoints for integral gain (m/s) |
 | `longitudinalTuning.kiV` | [0.] | [1.2, 0.8, 0.5] | Integral gain: higher at low speed for stopping, lower at highway for smoothness (Honda-matched) |
 
