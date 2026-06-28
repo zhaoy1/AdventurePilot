@@ -105,12 +105,36 @@ This document describes the changes on the `long-tuning-tizi` branch (based on `
 | `T_FOLLOW` (standard) | 1.45 | 1.25 | Set to previous aggressive value (~1.7s actual gap) |
 | `T_FOLLOW` (relaxed→auto) | 1.75 | auto | Auto mode: 0.8 above 55 mph (highway), 1.25 below (local) |
 | `jerk_factor` (relaxed→auto) | 1.0 | auto | Auto mode: 0.3 above 55 mph (highway), 1.0 below (local) |
-| `X_EGO_OBSTACLE_COST` | 3.0 | 7.0 | Higher gap error cost makes planner brake earlier when closing on slow lead |
+| `X_EGO_OBSTACLE_COST` | 3.0 | 6.0 (speed-dependent) | See elastic gap section below |
 | `jerk_factor` (aggressive) | 0.5 | 0.3 | Lower jerk penalty allows faster acceleration changes when catching up to lead |
 | `longitudinalTuning.kpBP` | [0.] | [0., 5., 20., 35.] | Speed breakpoints for proportional gain (m/s) |
 | `longitudinalTuning.kpV` | [0.] | [0.3, 1.0, 0.2, 0.1] | Low at standstill (smooth launch), high mid-speed (fast catch-up), low above 45 mph (smooth cruise) |
 | `longitudinalTuning.kiBP` | [0.] | [0., 5., 35.] | Speed breakpoints for integral gain (m/s) |
 | `longitudinalTuning.kiV` | [0.] | [1.2, 0.8, 0.5] | Integral gain: higher at low speed for stopping, lower at highway for smoothness (Honda-matched) |
+
+### Elastic Gap (Speed-Dependent X_EGO_OBSTACLE_COST)
+
+`X_EGO_OBSTACLE_COST` controls how aggressively the planner maintains the target following
+distance. Higher value = planner corrects any gap deviation immediately. Lower value = planner
+tolerates the gap being slightly larger or smaller without constant acceleration/deceleration.
+
+The cost is now speed-dependent:
+
+| Speed | X_EGO_OBSTACLE_COST | Behavior |
+|-------|--------------------:|----------|
+| 0–45 mph | 6.0 | Responsive: brakes early when approaching slow lead |
+| 60 mph | ~4.2 | Moderate: balanced |
+| 78 mph | 3.0 | Elastic: tolerates gap variation for smooth ride |
+
+**Why:** On highway, the lead car's speed fluctuates slightly (±2 mph). With a fixed high cost,
+the planner constantly adjusts to maintain exact distance — causing frequent small
+accelerations/decelerations that feel jerky. With a lower cost at highway speed, the planner
+accepts the gap being temporarily 10-20% larger or smaller, only correcting for significant
+deviations. The ride is smoother because the car isn't constantly reacting to minor speed
+changes from the lead.
+
+On local roads the high cost is kept so the planner brakes early when approaching a much
+slower car (the original problem that motivated increasing the cost from 3.0).
 
 ### Jerk Factor Analysis
 
