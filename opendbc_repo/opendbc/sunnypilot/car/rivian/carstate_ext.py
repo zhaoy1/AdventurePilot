@@ -7,8 +7,6 @@ See the LICENSE.md file in the root directory for more details.
 import math
 from enum import StrEnum
 
-import numpy as np
-
 from opendbc.car import Bus, structs
 from opendbc.can.parser import CANParser
 from opendbc.car.common.conversions import Conversions as CV
@@ -85,10 +83,10 @@ class CarStateExt:
         self.set_speed = max(self.set_speed, ret.vEgoCluster)
 
       self.set_speed = max(MIN_SET_SPEED, min(self.set_speed, MAX_SET_SPEED))
-      # Offset the MPC target down to compensate for steady-state overshoot at highway speeds
-      # (elastic gap). Display the original set_speed on the cluster so the driver sees the right number.
-      cruise_offset = float(np.interp(self.set_speed, [0., 10., 25., 35.], [0., 0., 0.3, 0.45]))
-      ret.cruiseState.speed = self.set_speed - cruise_offset
+      # Cluster speed reads higher than true speed (vEgo). Offset the MPC target down by
+      # the difference so the car holds the speed the driver sees on the cluster/comma UI.
+      cluster_offset = max(0., ret.vEgoCluster - ret.vEgo)
+      ret.cruiseState.speed = self.set_speed - cluster_offset
       ret.cruiseState.speedCluster = self.set_speed
 
     if self.CP.enableBsm:
@@ -122,10 +120,10 @@ class CarStateExt:
           self.set_speed = next_mph * CV.MPH_TO_MS
 
       self.set_speed = max(MIN_SET_SPEED, min(self.set_speed, MAX_SET_SPEED))
-      # Offset the MPC target down to compensate for steady-state overshoot at highway speeds
-      # (elastic gap). Display the original set_speed on the cluster so the driver sees the right number.
-      cruise_offset = float(np.interp(self.set_speed, [0., 10., 25., 35.], [0., 0., 0.3, 0.45]))
-      ret.cruiseState.speed = self.set_speed - cruise_offset
+      # Cluster speed reads higher than true speed (vEgo). Offset the MPC target down by
+      # the difference so the car holds the speed the driver sees on the cluster/comma UI.
+      cluster_offset = max(0., ret.vEgoCluster - ret.vEgo)
+      ret.cruiseState.speed = self.set_speed - cluster_offset
       ret.cruiseState.speedCluster = self.set_speed
 
   def update(self, ret: structs.CarState, can_parsers: dict[StrEnum, CANParser]) -> None:
