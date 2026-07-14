@@ -32,6 +32,7 @@ class CarStateExt:
     self.decrease_counter = 0
     self.stalk_down_counter = 0
     self.cruise_enabled_prev = False
+    self.stalk_engaged_cruise = False
 
   def update_longitudinal_upgrade(self, ret: structs.CarState, can_parsers: dict[StrEnum, CANParser]) -> None:
     cp_park = can_parsers[Bus.alt]
@@ -110,9 +111,14 @@ class CarStateExt:
         tap_increment = 1.0 * CV.MPH_TO_MS
         hold_step_mph = 5.0
 
-        # Ignore the stalk release that enabled cruise (don't interpret it as a speed-up tap)
-        just_engaged = not self.cruise_enabled_prev
-        if not just_engaged:
+        # Track stalk presses that started during the engagement pull so the
+        # subsequent release isn't interpreted as a speed-up tap.
+        if not self.cruise_enabled_prev:
+          self.stalk_engaged_cruise = True
+        if self.stalk_engaged_cruise:
+          if self.stalk_down_counter == 0:
+            self.stalk_engaged_cruise = False
+        else:
           if self.stalk_down_counter == 0 and prev_stalk_down_counter > 0:
             if prev_stalk_down_counter < 50:
               if ret.gasPressed and ret.vEgoCluster > self.set_speed:
