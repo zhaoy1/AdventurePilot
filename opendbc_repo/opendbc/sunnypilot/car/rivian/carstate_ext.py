@@ -31,6 +31,7 @@ class CarStateExt:
     self.increase_counter = 0
     self.decrease_counter = 0
     self.stalk_down_counter = 0
+    self.cruise_enabled_prev = False
 
   def update_longitudinal_upgrade(self, ret: structs.CarState, can_parsers: dict[StrEnum, CANParser]) -> None:
     cp_park = can_parsers[Bus.alt]
@@ -99,6 +100,7 @@ class CarStateExt:
     if self.CP.openpilotLongitudinalControl:
       if not ret.cruiseState.enabled:
         self.set_speed = ret.vEgoCluster
+        self.stalk_down_counter = 0
       else:
         # VDM_UserAdasRequest: 0=IDLE, 1=UP_1, 2=UP_2, 3=DOWN_1, 4=DOWN_2
         stalk_down = int(cp.vl["VDM_AdasSts"]["VDM_UserAdasRequest"]) in (3, 4)
@@ -108,17 +110,21 @@ class CarStateExt:
         tap_increment = 1.0 * CV.MPH_TO_MS
         hold_step_mph = 5.0
 
-        if self.stalk_down_counter == 0 and prev_stalk_down_counter > 0:
-          if prev_stalk_down_counter < 50:
-            if ret.gasPressed and ret.vEgoCluster > self.set_speed:
-              self.set_speed = ret.vEgoCluster
-            else:
-              self.set_speed += tap_increment
-        elif self.stalk_down_counter > 0 and self.stalk_down_counter % 50 == 0:
-          current_mph = self.set_speed * CV.MS_TO_MPH
-          next_mph = (int(current_mph / hold_step_mph) + 1) * hold_step_mph
-          self.set_speed = next_mph * CV.MPH_TO_MS
+        # Ignore the stalk release that enabled cruise (don't interpret it as a speed-up tap)
+        just_engaged = not self.cruise_enabled_prev
+        if not just_engaged:
+          if self.stalk_down_counter == 0 and prev_stalk_down_counter > 0:
+            if prev_stalk_down_counter < 50:
+              if ret.gasPressed and ret.vEgoCluster > self.set_speed:
+                self.set_speed = ret.vEgoCluster
+              else:
+                self.set_speed += tap_increment
+          elif self.stalk_down_counter > 0 and self.stalk_down_counter % 50 == 0:
+            current_mph = self.set_speed * CV.MS_TO_MPH
+            next_mph = (int(current_mph / hold_step_mph) + 1) * hold_step_mph
+            self.set_speed = next_mph * CV.MPH_TO_MS
 
+      self.cruise_enabled_prev = ret.cruiseState.enabled
       self.set_speed = max(MIN_SET_SPEED, min(self.set_speed, MAX_SET_SPEED))
       # Cluster speed reads higher than true speed (vEgo). Offset the MPC target down by
       # the difference so the car holds the speed the driver sees on the cluster/comma UI.
