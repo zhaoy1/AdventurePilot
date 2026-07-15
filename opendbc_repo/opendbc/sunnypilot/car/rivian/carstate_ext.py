@@ -59,6 +59,15 @@ class CarStateExt:
 
       metric = cp_adas.vl["Cluster"]["Cluster_Unit"] == 0
       conversion = CV.KPH_TO_MS if metric else CV.MPH_TO_MS
+      unit_step = CV.KPH_TO_MS if metric else CV.MPH_TO_MS
+
+      if not ret.cruiseState.enabled:
+        # Use floor(vEgo) to match what Rivian's cluster displays as cruise speed.
+        # The CAN Cluster_VehicleSpeed signal rounds up, but the Rivian cluster LCD
+        # uses floor — derive from the precise ESP speed to match.
+        ego_units = ret.vEgo / unit_step
+        self.set_speed = math.floor(ego_units) * unit_step
+
       long_press_step = 10.0 if metric else 5.0
       set_speed_converted = self.set_speed * (CV.MS_TO_KPH if metric else CV.MS_TO_MPH)
 
@@ -74,9 +83,6 @@ class CarStateExt:
         elif not prev_decrease_button:
           self.set_speed -= conversion
 
-      if not ret.cruiseState.enabled:
-        self.set_speed = ret.vEgoCluster
-
       # VDM_UserAdasRequest: 0=IDLE, 1=UP_1, 2=UP_2, 3=DOWN_1, 4=DOWN_2
       stalk_down = int(cp.vl["VDM_AdasSts"]["VDM_UserAdasRequest"]) in (3, 4)
       self.stalk_down_counter = self.stalk_down_counter + 1 if stalk_down else 0
@@ -85,10 +91,7 @@ class CarStateExt:
         self.set_speed = max(self.set_speed, ret.vEgoCluster)
 
       self.set_speed = max(MIN_SET_SPEED, min(self.set_speed, MAX_SET_SPEED))
-      # Cluster speed reads higher than true speed (vEgo). Offset the MPC target down by
-      # the difference so the car holds the speed the driver sees on the cluster/comma UI.
-      cluster_offset = max(0., ret.vEgoCluster - ret.vEgo)
-      ret.cruiseState.speed = self.set_speed - cluster_offset
+      ret.cruiseState.speed = self.set_speed
       ret.cruiseState.speedCluster = self.set_speed
 
     if self.CP.enableBsm:
@@ -100,7 +103,11 @@ class CarStateExt:
 
     if self.CP.openpilotLongitudinalControl:
       if not ret.cruiseState.enabled:
-        self.set_speed = ret.vEgoCluster
+        # Use floor(vEgo) to match what Rivian's cluster displays as cruise speed.
+        # The CAN Cluster_VehicleSpeed signal rounds up, but the Rivian cluster LCD
+        # uses floor — derive from the precise ESP speed to match.
+        ego_mph = ret.vEgo * CV.MS_TO_MPH
+        self.set_speed = math.floor(ego_mph) * CV.MPH_TO_MS
         self.stalk_down_counter = 0
       else:
         # VDM_UserAdasRequest: 0=IDLE, 1=UP_1, 2=UP_2, 3=DOWN_1, 4=DOWN_2
@@ -111,10 +118,9 @@ class CarStateExt:
         tap_increment = 1.0 * CV.MPH_TO_MS
         hold_step_mph = 5.0
 
-        # Track stalk presses that started during the engagement pull so the
-        # subsequent release isn't interpreted as a speed-up tap.
         if not self.cruise_enabled_prev:
           self.stalk_engaged_cruise = True
+
         if self.stalk_engaged_cruise:
           if self.stalk_down_counter == 0:
             self.stalk_engaged_cruise = False
@@ -132,10 +138,7 @@ class CarStateExt:
 
       self.cruise_enabled_prev = ret.cruiseState.enabled
       self.set_speed = max(MIN_SET_SPEED, min(self.set_speed, MAX_SET_SPEED))
-      # Cluster speed reads higher than true speed (vEgo). Offset the MPC target down by
-      # the difference so the car holds the speed the driver sees on the cluster/comma UI.
-      cluster_offset = max(0., ret.vEgoCluster - ret.vEgo)
-      ret.cruiseState.speed = self.set_speed - cluster_offset
+      ret.cruiseState.speed = self.set_speed
       ret.cruiseState.speedCluster = self.set_speed
 
   def update(self, ret: structs.CarState, can_parsers: dict[StrEnum, CANParser]) -> None:
