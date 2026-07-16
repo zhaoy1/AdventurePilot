@@ -86,7 +86,10 @@ class CarStateExt:
         self.set_speed = max(self.set_speed, ret.vEgoCluster)
 
       self.set_speed = max(MIN_SET_SPEED, min(self.set_speed, MAX_SET_SPEED))
-      ret.cruiseState.speed = self.set_speed
+      # Offset MPC target so the car holds current vEgo exactly at engagement,
+      # avoiding a ~1 mph deceleration from flooring.
+      cluster_offset = max(0., ret.vEgoCluster - ret.vEgo)
+      ret.cruiseState.speed = self.set_speed - cluster_offset
       ret.cruiseState.speedCluster = self.set_speed
 
     if self.CP.enableBsm:
@@ -129,7 +132,8 @@ class CarStateExt:
 
       self.cruise_enabled_prev = ret.cruiseState.enabled
       self.set_speed = max(MIN_SET_SPEED, min(self.set_speed, MAX_SET_SPEED))
-      ret.cruiseState.speed = self.set_speed
+      cluster_offset = max(0., ret.vEgoCluster - ret.vEgo)
+      ret.cruiseState.speed = self.set_speed - cluster_offset
       ret.cruiseState.speedCluster = self.set_speed
 
   def update(self, ret: structs.CarState, can_parsers: dict[StrEnum, CANParser]) -> None:
