@@ -59,14 +59,9 @@ class CarStateExt:
 
       metric = cp_adas.vl["Cluster"]["Cluster_Unit"] == 0
       conversion = CV.KPH_TO_MS if metric else CV.MPH_TO_MS
-      unit_step = CV.KPH_TO_MS if metric else CV.MPH_TO_MS
 
       if not ret.cruiseState.enabled:
-        # Use floor(vEgo) to match what Rivian's cluster displays as cruise speed.
-        # The CAN Cluster_VehicleSpeed signal rounds up, but the Rivian cluster LCD
-        # uses floor — derive from the precise ESP speed to match.
-        ego_units = ret.vEgo / unit_step
-        self.set_speed = math.floor(ego_units) * unit_step
+        self.set_speed = ret.vEgoCluster
 
       long_press_step = 10.0 if metric else 5.0
       set_speed_converted = self.set_speed * (CV.MS_TO_KPH if metric else CV.MS_TO_MPH)
@@ -103,11 +98,7 @@ class CarStateExt:
 
     if self.CP.openpilotLongitudinalControl:
       if not ret.cruiseState.enabled:
-        # Use floor(vEgo) to match what Rivian's cluster displays as cruise speed.
-        # The CAN Cluster_VehicleSpeed signal rounds up, but the Rivian cluster LCD
-        # uses floor — derive from the precise ESP speed to match.
-        ego_mph = ret.vEgo * CV.MS_TO_MPH
-        self.set_speed = math.floor(ego_mph) * CV.MPH_TO_MS
+        self.set_speed = ret.vEgoCluster
         self.stalk_down_counter = 0
       else:
         # VDM_UserAdasRequest: 0=IDLE, 1=UP_1, 2=UP_2, 3=DOWN_1, 4=DOWN_2

@@ -1,4 +1,5 @@
 import copy
+import math
 from opendbc.can import CANParser
 from opendbc.car import Bus, structs
 from opendbc.car.interfaces import CarStateBase
@@ -31,8 +32,10 @@ class CarState(CarStateBase, CarStateExt):
     ret.vEgoRaw = cp.vl["ESP_Status"]["ESP_Vehicle_Speed"] * CV.KPH_TO_MS
     ret.vEgo, ret.aEgo = self.update_speed_kf(ret.vEgoRaw)
     ret.standstill = abs(ret.vEgoRaw) < 0.01
-    conversion = CV.KPH_TO_MS if cp_adas.vl["Cluster"]["Cluster_Unit"] == 0 else CV.MPH_TO_MS
-    ret.vEgoCluster = cp_adas.vl["Cluster"]["Cluster_VehicleSpeed"] * conversion
+    # Derive cluster speed from floor(vEgo) to match what Rivian's LCD displays.
+    # The CAN Cluster_VehicleSpeed rounds up, but the physical cluster floors.
+    unit_step = CV.KPH_TO_MS if cp_adas.vl["Cluster"]["Cluster_Unit"] == 0 else CV.MPH_TO_MS
+    ret.vEgoCluster = math.floor(ret.vEgo / unit_step) * unit_step
 
     # Gas pedal
     ret.gasPressed = cp.vl["VDM_PropStatus"]["VDM_AcceleratorPedalPosition"] > 0
