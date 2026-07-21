@@ -40,7 +40,7 @@ J_EGO_COST = 5.
 A_CHANGE_COST = 200.
 DANGER_ZONE_COST = 100.
 CRASH_DISTANCE = .25
-LEAD_DANGER_FACTOR = 0.75
+LEAD_DANGER_FACTOR = 0.8
 LIMIT_COST = 1e6
 ACADOS_SOLVER_TYPE = 'SQP_RTI'
 
@@ -60,6 +60,10 @@ CRUISE_MAX_ACCEL = 1.6
 MIN_X_LEAD_FACTOR = 0.5
 
 AUTO_HIGHWAY_SPEED = 24.6  # 55 mph in m/s
+
+def get_closing_speed(v_ego, v_lead):
+  return max(v_ego - v_lead, 0.0)
+
 
 def get_jerk_factor(personality=log.LongitudinalPersonality.standard, v_ego=0.):
   if personality==log.LongitudinalPersonality.relaxed:
@@ -83,6 +87,24 @@ def get_T_FOLLOW(personality=log.LongitudinalPersonality.standard, v_ego=0.):
     return 0.8
   else:
     raise NotImplementedError("Longitudinal personality not supported")
+
+
+def get_lead_danger_factor(v_ego=0., v_lead=None):
+  if v_lead is None:
+    return 0.8
+
+  closing_speed = get_closing_speed(v_ego, v_lead)
+  return np.interp(closing_speed, [0.0, 2.0, 4.0, 7.0], [0.8, 0.82, 0.88, 0.92])
+
+
+def get_x_ego_obstacle_cost(v_ego=0., v_lead=None):
+  base_cost = np.interp(v_ego, [0., 10., 25., 35.], [X_EGO_OBSTACLE_COST, X_EGO_OBSTACLE_COST, 4., 3.])
+  if v_lead is None:
+    return base_cost
+
+  closing_speed = get_closing_speed(v_ego, v_lead)
+  closing_boost = np.interp(closing_speed, [0.0, 1.0, 2.5, 4.0, 6.0], [0.0, 0.0, 0.75, 1.25, 1.75])
+  return base_cost + closing_boost
 
 def get_stopped_equivalence_factor(v_lead):
   return (v_lead**2) / (2 * COMFORT_BRAKE)
@@ -271,11 +293,11 @@ class LongitudinalMpc:
     for i in range(N):
       self.solver.cost_set(i, 'Zl', Zl)
 
-  def set_weights(self, prev_accel_constraint=True, personality=log.LongitudinalPersonality.standard, v_ego=0.):
+  def set_weights(self, prev_accel_constraint=True, personality=log.LongitudinalPersonality.standard, v_ego=0., v_lead=None):
     jerk_factor = get_jerk_factor(personality, v_ego)
     a_change_cost = A_CHANGE_COST if prev_accel_constraint else 0
-    # Lower obstacle cost at higher speeds for elastic gap (fewer corrections, smoother ride)
-    x_ego_obstacle_cost = np.interp(v_ego, [0., 10., 25., 35.], [X_EGO_OBSTACLE_COST, X_EGO_OBSTACLE_COST, 4., 3.])
+    # Keep highway cruising elastic, but temporarily increase lead tracking authority when closing on a slower car.
+    x_ego_obstacle_cost = get_x_ego_obstacle_cost(v_ego, v_lead)
     cost_weights = [x_ego_obstacle_cost, X_EGO_COST, V_EGO_COST, A_EGO_COST, jerk_factor * a_change_cost, jerk_factor * J_EGO_COST]
     constraint_cost_weights = [LIMIT_COST, LIMIT_COST, LIMIT_COST, DANGER_ZONE_COST]
     self.set_cost_weights(cost_weights, constraint_cost_weights)
@@ -319,9 +341,10 @@ class LongitudinalMpc:
     lead_xv = self.extrapolate_lead(x_lead, v_lead, a_lead, a_lead_tau)
     return lead_xv
 
-  def update(self, radarstate, v_cruise, personality=log.LongitudinalPersonality.standard):
+  def update(self, radarstate, v_cruise, personality=log.LongitudinalPersonality.standard, v_lead=None):
     v_ego = self.x0[1]
     t_follow = get_T_FOLLOW(personality, v_ego)
+    lead_danger_factor = get_lead_danger_factor(v_ego, v_lead)
     self.status = radarstate.leadOne.status or radarstate.leadTwo.status
 
     lead_xv_0 = self.process_lead(radarstate.leadOne)
@@ -354,7 +377,7 @@ class LongitudinalMpc:
     self.params[:,2] = np.min(x_obstacles, axis=1)
     self.params[:,3] = np.copy(self.a_prev)
     self.params[:,4] = t_follow
-    self.params[:,5] = LEAD_DANGER_FACTOR
+    self.params[:,5] = lead_danger_factor
 
     self.run()
     if (np.any(lead_xv_0[FCW_IDXS,0] - self.x_sol[FCW_IDXS,0] < CRASH_DISTANCE) and
