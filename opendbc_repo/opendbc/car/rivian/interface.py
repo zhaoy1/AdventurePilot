@@ -35,8 +35,11 @@ class CarInterface(CarInterfaceBase):
       ret.safetyConfigs[0].safetyParam |= RivianSafetyFlags.LONG_CONTROL.value
 
     ret.longitudinalActuatorDelay = 0.15
-    ret.vEgoStopping = 0.25
-    ret.stopAccel = -0.5
+    # Start the stopping state a bit earlier and build hold brake more gently so
+    # the final roll-out into 0 mph feels progressive instead of ending in a jab.
+    ret.vEgoStopping = 0.4
+    ret.stopAccel = -0.35
+    ret.stoppingDecelRate = 0.25
     ret.longitudinalTuning.kpBP = [0., 5., 20., 35.]
     ret.longitudinalTuning.kpV = [0.3, 1.0, 0.2, 0.1]
     ret.longitudinalTuning.kiBP = [0., 5., 35.]

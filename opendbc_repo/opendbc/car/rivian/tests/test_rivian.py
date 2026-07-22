@@ -1,5 +1,6 @@
 import unittest
 
+from opendbc.car.rivian.interface import CarInterface
 from opendbc.car.rivian.fingerprints import FW_VERSIONS
 from opendbc.car.rivian.values import CAR, FW_QUERY_CONFIG, WMI, ModelLine, ModelYear
 
@@ -23,3 +24,10 @@ class TestRivian(unittest.TestCase):
                 matches = FW_QUERY_CONFIG.match_fw_to_car_fuzzy({}, vin, FW_VERSIONS)
                 should_match = year in platform.config.years and not bad
                 assert (matches == {platform}) == should_match, "Bad match"
+
+  def test_stop_tuning_is_comfort_biased(self):
+    car_params = CarInterface.get_non_essential_params(CAR.RIVIAN_R1)
+
+    self.assertAlmostEqual(car_params.vEgoStopping, 0.4)
+    self.assertAlmostEqual(car_params.stopAccel, -0.35)
+    self.assertAlmostEqual(car_params.stoppingDecelRate, 0.25)
