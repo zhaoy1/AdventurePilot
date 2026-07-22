@@ -34,6 +34,34 @@ class CarStateExt:
     self.cruise_enabled_prev = False
     self.stalk_engaged_cruise = False
 
+  def update_rivian_cruise_debug(self, ret: structs.CarState, ret_sp: structs.CarStateSP,
+                                 can_parsers: dict[StrEnum, CANParser]) -> None:
+    cp = can_parsers[Bus.pt]
+    cp_adas = can_parsers[Bus.adas]
+    cp_cam = can_parsers[Bus.cam]
+
+    metric = cp_adas.vl["Cluster"]["Cluster_Unit"] == 0
+    speed_conv = CV.KPH_TO_MS if metric else CV.MPH_TO_MS
+
+    debug = ret_sp.rivianCruiseDebug
+    debug.valid = True
+    debug.metric = metric
+    debug.vEgoRaw = ret.vEgoRaw
+    debug.vEgoClusterRaw = cp_adas.vl["Cluster"]["Cluster_VehicleSpeed"] * speed_conv
+    debug.vEgoClusterDisplay = ret.vEgoCluster
+    debug.cruiseSpeedTarget = ret.cruiseState.speed
+    debug.cruiseSpeedDisplay = ret.cruiseState.speedCluster if ret.cruiseState.speedCluster != 0 else ret.cruiseState.speed
+    debug.setSpeed = self.set_speed if self.CP.openpilotLongitudinalControl else 0.0
+    debug.clusterOffsetApplied = debug.setSpeed - ret.cruiseState.speed if self.CP.openpilotLongitudinalControl else 0.0
+    debug.acmFeatureStatus = int(cp_cam.vl["ACM_Status"]["ACM_FeatureStatus"])
+    debug.acmFaultStatus = int(cp_cam.vl["ACM_Status"]["ACM_FaultStatus"])
+    debug.adasInterfaceStatus = int(cp.vl["VDM_AdasSts"]["VDM_AdasInterfaceStatus"])
+    debug.adasDriverModeStatus = int(cp.vl["VDM_AdasSts"]["VDM_AdasDriverModeStatus"])
+    debug.userAdasRequest = int(cp.vl["VDM_AdasSts"]["VDM_UserAdasRequest"])
+    debug.stalkAccEnableAdj = int(cp.vl["VDM_AdasStalk"]["VDM_AdasStalkAccEnableAdj"])
+    debug.stalkAccCancelRes = int(cp.vl["VDM_AdasStalk"]["VDM_AdasStalkAccCancelRes"])
+    debug.stalkGapAdjust = int(cp.vl["VDM_AdasStalk"]["VDM_AdasStalkGapAdjust"])
+
   def update_longitudinal_upgrade(self, ret: structs.CarState, can_parsers: dict[StrEnum, CANParser]) -> None:
     cp_park = can_parsers[Bus.alt]
     cp_adas = can_parsers[Bus.adas]
@@ -136,11 +164,13 @@ class CarStateExt:
       ret.cruiseState.speed = self.set_speed - cluster_offset
       ret.cruiseState.speedCluster = self.set_speed
 
-  def update(self, ret: structs.CarState, can_parsers: dict[StrEnum, CANParser]) -> None:
+  def update(self, ret: structs.CarState, ret_sp: structs.CarStateSP, can_parsers: dict[StrEnum, CANParser]) -> None:
     if self.CP_SP.flags & RivianFlagsSP.LONGITUDINAL_HARNESS_UPGRADE:
       self.update_longitudinal_upgrade(ret, can_parsers)
     elif self.CP_SP.flags & RivianFlagsSP.LONGITUDINAL_WITHOUT_HARNESS:
       self.update_longitudinal_without_harness(ret, can_parsers)
+
+    self.update_rivian_cruise_debug(ret, ret_sp, can_parsers)
 
   @staticmethod
   def get_parser(CP, CP_SP) -> dict[StrEnum, CANParser]:

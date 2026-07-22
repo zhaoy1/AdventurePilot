@@ -435,6 +435,27 @@ struct BackupManagerSP @0xf98d843bfd7004a3 {
 
 struct CarStateSP @0xb86e6369214c01c8 {
   speedLimit @0 :Float32;
+  rivianCruiseDebug @1 :RivianCruiseDebug;
+
+  struct RivianCruiseDebug {
+    valid @0 :Bool;
+    metric @1 :Bool;
+    vEgoRaw @2 :Float32;
+    vEgoClusterRaw @3 :Float32;
+    vEgoClusterDisplay @4 :Float32;
+    cruiseSpeedTarget @5 :Float32;
+    cruiseSpeedDisplay @6 :Float32;
+    setSpeed @7 :Float32;
+    clusterOffsetApplied @8 :Float32;
+    acmFeatureStatus @9 :UInt8;
+    acmFaultStatus @10 :UInt8;
+    adasInterfaceStatus @11 :UInt8;
+    adasDriverModeStatus @12 :UInt8;
+    userAdasRequest @13 :UInt8;
+    stalkAccEnableAdj @14 :UInt8;
+    stalkAccCancelRes @15 :UInt8;
+    stalkGapAdjust @16 :UInt8;
+  }
 }
 
 struct LiveMapDataSP @0xf416ec09499d9d19 {

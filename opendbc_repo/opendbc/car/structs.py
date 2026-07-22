@@ -170,3 +170,24 @@ class CarControlSP:
 @auto_dataclass
 class CarStateSP:
   speedLimit: float = auto_field()
+  rivianCruiseDebug: 'CarStateSP.RivianCruiseDebug' = field(default_factory=lambda: CarStateSP.RivianCruiseDebug())
+
+  @auto_dataclass
+  class RivianCruiseDebug:
+    valid: bool = auto_field()
+    metric: bool = auto_field()
+    vEgoRaw: float = auto_field()
+    vEgoClusterRaw: float = auto_field()
+    vEgoClusterDisplay: float = auto_field()
+    cruiseSpeedTarget: float = auto_field()
+    cruiseSpeedDisplay: float = auto_field()
+    setSpeed: float = auto_field()
+    clusterOffsetApplied: float = auto_field()
+    acmFeatureStatus: int = auto_field()
+    acmFaultStatus: int = auto_field()
+    adasInterfaceStatus: int = auto_field()
+    adasDriverModeStatus: int = auto_field()
+    userAdasRequest: int = auto_field()
+    stalkAccEnableAdj: int = auto_field()
+    stalkAccCancelRes: int = auto_field()
+    stalkGapAdjust: int = auto_field()
