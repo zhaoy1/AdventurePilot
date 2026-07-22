@@ -111,8 +111,11 @@ class CarState(CarStateBase, CarStateExt):
 
   @staticmethod
   def get_can_parsers(CP, CP_SP):
+    # VDM_AdasStalk appears to be event-driven rather than periodic.
+    # Register it up front and ignore alive checks so debug reads don't invalidate Bus.pt.
+    pt_messages = [("VDM_AdasStalk", math.nan)]
     return {
-      Bus.pt: CANParser(DBC[CP.carFingerprint][Bus.pt], [], 0),
+      Bus.pt: CANParser(DBC[CP.carFingerprint][Bus.pt], pt_messages, 0),
       Bus.adas: CANParser(DBC[CP.carFingerprint][Bus.pt], [], 1),
       Bus.cam: CANParser(DBC[CP.carFingerprint][Bus.pt], [], 2),
       **CarStateExt.get_parser(CP, CP_SP),
