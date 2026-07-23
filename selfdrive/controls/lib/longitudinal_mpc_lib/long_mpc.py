@@ -65,16 +65,39 @@ def get_closing_speed(v_ego, v_lead):
   return max(v_ego - v_lead, 0.0)
 
 
-def get_jerk_factor(personality=log.LongitudinalPersonality.standard, v_ego=0.):
+def get_follow_buffer_distance(v_ego, t_follow):
+  return STOP_DISTANCE + t_follow * v_ego
+
+
+def get_highway_elasticity(v_ego=0., v_lead=None, d_rel=None, t_follow=1.25):
+  if d_rel is None:
+    return 0.0
+
+  gap_buffer = d_rel - get_follow_buffer_distance(v_ego, t_follow)
+  speed_factor = np.interp(v_ego, [AUTO_HIGHWAY_SPEED, 30.0, 38.0], [0.0, 0.6, 1.0])
+  gap_factor = np.interp(gap_buffer, [0.0, 5.0, 12.0, 20.0], [0.0, 0.0, 0.6, 1.0])
+  closing_reference = v_ego if v_lead is None else v_lead
+  closing_factor = np.interp(get_closing_speed(v_ego, closing_reference), [0.0, 1.5, 3.0, 5.0], [1.0, 1.0, 0.5, 0.0])
+  # Short-gap modes still get some elasticity, just less than the standard gap mode.
+  mode_factor = np.interp(t_follow, [0.8, 1.25], [0.75, 1.0])
+  return float(np.clip(speed_factor * gap_factor * closing_factor * mode_factor, 0.0, 1.0))
+
+
+def get_jerk_factor(personality=log.LongitudinalPersonality.standard, v_ego=0., v_lead=None, d_rel=None, t_follow=None):
   if personality==log.LongitudinalPersonality.relaxed:
     # Auto mode: aggressive on highway, standard on local
-    return 0.3 if v_ego > AUTO_HIGHWAY_SPEED else 1.0
+    base = 0.3 if v_ego > AUTO_HIGHWAY_SPEED else 1.0
   elif personality==log.LongitudinalPersonality.standard:
-    return 1.0
+    base = 1.0
   elif personality==log.LongitudinalPersonality.aggressive:
-    return 0.3
+    base = 0.3
   else:
     raise NotImplementedError("Longitudinal personality not supported")
+
+  if t_follow is None:
+    t_follow = get_T_FOLLOW(personality, v_ego)
+  elasticity = get_highway_elasticity(v_ego, v_lead, d_rel, t_follow)
+  return base * np.interp(elasticity, [0.0, 1.0], [1.0, 1.6])
 
 
 def get_T_FOLLOW(personality=log.LongitudinalPersonality.standard, v_ego=0.):
@@ -97,14 +120,17 @@ def get_lead_danger_factor(v_ego=0., v_lead=None):
   return np.interp(closing_speed, [0.0, 2.0, 4.0, 7.0], [0.8, 0.82, 0.88, 0.92])
 
 
-def get_x_ego_obstacle_cost(v_ego=0., v_lead=None):
+def get_x_ego_obstacle_cost(v_ego=0., v_lead=None, d_rel=None, t_follow=1.25):
   base_cost = np.interp(v_ego, [0., 10., 25., 35.], [X_EGO_OBSTACLE_COST, X_EGO_OBSTACLE_COST, 4., 3.])
   if v_lead is None:
     return base_cost
 
   closing_speed = get_closing_speed(v_ego, v_lead)
   closing_boost = np.interp(closing_speed, [0.0, 1.0, 2.5, 4.0, 6.0], [0.0, 0.0, 0.75, 1.25, 1.75])
-  return base_cost + closing_boost
+  elasticity = get_highway_elasticity(v_ego, v_lead, d_rel, t_follow)
+  base_reduction = np.interp(elasticity, [0.0, 1.0], [0.0, 0.8])
+  closing_scale = np.interp(elasticity, [0.0, 1.0], [1.0, 0.7])
+  return max(2.0, base_cost - base_reduction) + closing_boost * closing_scale
 
 def get_stopped_equivalence_factor(v_lead):
   return (v_lead**2) / (2 * COMFORT_BRAKE)
@@ -293,11 +319,12 @@ class LongitudinalMpc:
     for i in range(N):
       self.solver.cost_set(i, 'Zl', Zl)
 
-  def set_weights(self, prev_accel_constraint=True, personality=log.LongitudinalPersonality.standard, v_ego=0., v_lead=None):
-    jerk_factor = get_jerk_factor(personality, v_ego)
+  def set_weights(self, prev_accel_constraint=True, personality=log.LongitudinalPersonality.standard, v_ego=0., v_lead=None, d_rel=None):
+    t_follow = get_T_FOLLOW(personality, v_ego)
+    jerk_factor = get_jerk_factor(personality, v_ego, v_lead=v_lead, d_rel=d_rel, t_follow=t_follow)
     a_change_cost = A_CHANGE_COST if prev_accel_constraint else 0
     # Keep highway cruising elastic, but temporarily increase lead tracking authority when closing on a slower car.
-    x_ego_obstacle_cost = get_x_ego_obstacle_cost(v_ego, v_lead)
+    x_ego_obstacle_cost = get_x_ego_obstacle_cost(v_ego, v_lead, d_rel=d_rel, t_follow=t_follow)
     cost_weights = [x_ego_obstacle_cost, X_EGO_COST, V_EGO_COST, A_EGO_COST, jerk_factor * a_change_cost, jerk_factor * J_EGO_COST]
     constraint_cost_weights = [LIMIT_COST, LIMIT_COST, LIMIT_COST, DANGER_ZONE_COST]
     self.set_cost_weights(cost_weights, constraint_cost_weights)

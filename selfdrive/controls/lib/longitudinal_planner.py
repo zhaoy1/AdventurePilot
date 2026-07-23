@@ -137,9 +137,11 @@ class LongitudinalPlanner(LongitudinalPlannerSP):
       v_cruise = 0.0
 
     valid_leads = [lead for lead in (sm['radarState'].leadOne, sm['radarState'].leadTwo) if lead.status]
-    lead_v = min(valid_leads, key=lambda lead: lead.dRel).vLead if valid_leads else None
+    nearest_lead = min(valid_leads, key=lambda lead: lead.dRel) if valid_leads else None
+    lead_v = nearest_lead.vLead if nearest_lead is not None else None
+    lead_d = nearest_lead.dRel if nearest_lead is not None else None
 
-    self.mpc.set_weights(prev_accel_constraint, personality=sm['selfdriveState'].personality, v_ego=v_ego, v_lead=lead_v)
+    self.mpc.set_weights(prev_accel_constraint, personality=sm['selfdriveState'].personality, v_ego=v_ego, v_lead=lead_v, d_rel=lead_d)
     self.mpc.set_cur_state(self.v_desired_filter.x, self.a_desired)
     self.mpc.update(sm['radarState'], v_cruise, personality=sm['selfdriveState'].personality, v_lead=lead_v)
 
