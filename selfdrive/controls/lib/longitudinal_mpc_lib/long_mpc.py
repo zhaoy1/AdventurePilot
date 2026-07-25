@@ -60,6 +60,9 @@ CRUISE_MAX_ACCEL = 1.6
 MIN_X_LEAD_FACTOR = 0.5
 
 AUTO_HIGHWAY_SPEED = 24.6  # 55 mph in m/s
+WEIGHT_TIGHTEN_RATE = 0.6
+WEIGHT_TIGHTEN_RATE_URGENT = 3.0
+WEIGHT_RELAX_RATE = 1.2
 
 def get_closing_speed(v_ego, v_lead):
   return max(v_ego - v_lead, 0.0)
@@ -81,6 +84,29 @@ def get_highway_elasticity(v_ego=0., v_lead=None, d_rel=None, t_follow=1.25):
   # Short-gap modes still get some elasticity, just less than the standard gap mode.
   mode_factor = np.interp(t_follow, [0.8, 1.25], [0.75, 1.0])
   return float(np.clip(speed_factor * gap_factor * closing_factor * mode_factor, 0.0, 1.0))
+
+
+def get_tightening_urgency(v_ego=0., v_lead=None, d_rel=None, t_follow=1.25):
+  closing_speed = get_closing_speed(v_ego, v_ego if v_lead is None else v_lead)
+  closing_urgency = np.interp(closing_speed, [0.0, 1.5, 3.0, 5.5], [0.0, 0.0, 0.55, 1.0])
+
+  if d_rel is None:
+    return float(closing_urgency)
+
+  gap_buffer = d_rel - get_follow_buffer_distance(v_ego, t_follow)
+  gap_urgency = np.interp(gap_buffer, [14.0, 8.0, 3.0, 0.0], [0.0, 0.0, 0.45, 1.0])
+  return float(np.clip(max(closing_urgency, gap_urgency), 0.0, 1.0))
+
+
+def rate_limit_cost_tightening(current, target, urgency, dt=DT_MDL, tighten_when_increasing=True):
+  tightening = target >= current if tighten_when_increasing else target <= current
+  if tightening:
+    tighten_rate = np.interp(urgency, [0.0, 1.0], [WEIGHT_TIGHTEN_RATE, WEIGHT_TIGHTEN_RATE_URGENT])
+    next_value = current + tighten_rate * dt if target >= current else current - tighten_rate * dt
+    return min(target, next_value) if target >= current else max(target, next_value)
+  else:
+    next_value = current - WEIGHT_RELAX_RATE * dt if target <= current else current + WEIGHT_RELAX_RATE * dt
+    return max(target, next_value) if target <= current else min(target, next_value)
 
 
 def get_jerk_factor(personality=log.LongitudinalPersonality.standard, v_ego=0., v_lead=None, d_rel=None, t_follow=None):
@@ -301,6 +327,8 @@ class LongitudinalMpc:
     self.time_linearization = 0.0
     self.time_integrator = 0.0
     self.x0 = np.zeros(X_DIM)
+    self.x_ego_obstacle_cost = X_EGO_OBSTACLE_COST
+    self.jerk_factor = 1.0
     self.set_weights()
 
   def set_cost_weights(self, cost_weights, constraint_cost_weights):
@@ -321,11 +349,20 @@ class LongitudinalMpc:
 
   def set_weights(self, prev_accel_constraint=True, personality=log.LongitudinalPersonality.standard, v_ego=0., v_lead=None, d_rel=None):
     t_follow = get_T_FOLLOW(personality, v_ego)
-    jerk_factor = get_jerk_factor(personality, v_ego, v_lead=v_lead, d_rel=d_rel, t_follow=t_follow)
+    target_jerk_factor = get_jerk_factor(personality, v_ego, v_lead=v_lead, d_rel=d_rel, t_follow=t_follow)
     a_change_cost = A_CHANGE_COST if prev_accel_constraint else 0
     # Keep highway cruising elastic, but temporarily increase lead tracking authority when closing on a slower car.
-    x_ego_obstacle_cost = get_x_ego_obstacle_cost(v_ego, v_lead, d_rel=d_rel, t_follow=t_follow)
-    cost_weights = [x_ego_obstacle_cost, X_EGO_COST, V_EGO_COST, A_EGO_COST, jerk_factor * a_change_cost, jerk_factor * J_EGO_COST]
+    target_x_ego_obstacle_cost = get_x_ego_obstacle_cost(v_ego, v_lead, d_rel=d_rel, t_follow=t_follow)
+    tightening_urgency = get_tightening_urgency(v_ego, v_lead, d_rel, t_follow)
+    self.x_ego_obstacle_cost = rate_limit_cost_tightening(
+      self.x_ego_obstacle_cost, target_x_ego_obstacle_cost, tightening_urgency, self.dt, tighten_when_increasing=True
+    )
+    # A lower jerk factor means the car is allowed to react more sharply. Rate limit that
+    # transition so mild lead slowdowns don't create a one-cycle "bite" before settling.
+    self.jerk_factor = rate_limit_cost_tightening(
+      self.jerk_factor, target_jerk_factor, tightening_urgency, self.dt, tighten_when_increasing=False
+    )
+    cost_weights = [self.x_ego_obstacle_cost, X_EGO_COST, V_EGO_COST, A_EGO_COST, self.jerk_factor * a_change_cost, self.jerk_factor * J_EGO_COST]
     constraint_cost_weights = [LIMIT_COST, LIMIT_COST, LIMIT_COST, DANGER_ZONE_COST]
     self.set_cost_weights(cost_weights, constraint_cost_weights)
 

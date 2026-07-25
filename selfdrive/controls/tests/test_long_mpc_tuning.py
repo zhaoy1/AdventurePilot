@@ -8,6 +8,7 @@ from openpilot.selfdrive.controls.lib.longitudinal_mpc_lib.long_mpc import (
   get_jerk_factor,
   get_lead_danger_factor,
   get_x_ego_obstacle_cost,
+  rate_limit_cost_tightening,
 )
 
 
@@ -81,3 +82,15 @@ def test_highway_elasticity_fades_when_closing_speed_is_large():
 
   assert strong_close_cost > gentle_cost
   assert strong_close_jerk < gentle_jerk
+
+
+def test_cost_tightening_is_rate_limited_for_small_urgency():
+  next_cost = rate_limit_cost_tightening(3.0, 4.0, urgency=0.0, dt=0.05, tighten_when_increasing=True)
+
+  assert next_cost == pytest.approx(3.03)
+
+
+def test_jerk_tightening_is_rate_limited_when_target_drops():
+  next_jerk = rate_limit_cost_tightening(1.6, 1.0, urgency=0.0, dt=0.05, tighten_when_increasing=False)
+
+  assert next_jerk == pytest.approx(1.57)
